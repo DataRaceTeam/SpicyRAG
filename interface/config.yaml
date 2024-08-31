@@ -1,0 +1,11 @@
+project:
+  name: "SpicyRag"
+
+database:
+  user: "user"
+  password: "password"
+  name: "spicyragdb"
+
+llm:
+  url: "url"
+  token: "token"
