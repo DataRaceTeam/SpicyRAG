@@ -47,6 +47,6 @@ if st.button("Send") and user_input:
 # Display the chat history
 for message in st.session_state.messages:
     if message["role"] == "user":
-        st.write(f"You: {message['content']}")
+        st.write(f"Request: {message['content']}")
     else:
-        st.write(f"Assistant: {message['content']}")
+        st.write(f"Response: {message['content']}")
