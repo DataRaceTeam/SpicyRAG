@@ -1,4 +1,5 @@
 import streamlit as st
+from utils import evaluate_system
 import requests
 
 # Set up the Streamlit page configuration
@@ -30,7 +31,7 @@ def send_message(user_input):
         return "Error: Could not reach the backend."
 
 
-# User input text box
+# User input text box for chat
 user_input = st.text_area("Case to search definition in NPA knowledge:", height=150)
 
 # If user submits a message
@@ -45,8 +46,22 @@ if st.button("Send") and user_input:
     st.session_state.messages.append({"role": "assistant", "content": response_content})
 
 # Display the chat history
+st.subheader("Chat History")
 for message in st.session_state.messages:
     if message["role"] == "user":
         st.write(f"Request: {message['content']}")
     else:
         st.write(f"Response: {message['content']}")
+
+# RAGAS Evaluation Section
+st.subheader("RAGAS Evaluation")
+
+# RAGAS Evaluation Button
+if st.button("Run RAGAS Evaluation"):
+    with st.spinner("Running evaluation"):
+        results = evaluate_system()
+
+        # Display the evaluation results
+        st.subheader("Evaluation Results")
+        for metric_name, score in results.items():
+            st.write(f"{metric_name}: {score:.2f}")

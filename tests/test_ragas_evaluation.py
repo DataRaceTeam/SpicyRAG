@@ -3,8 +3,11 @@ from sqlalchemy.orm import Session
 from interface.database import SessionLocal
 from interface.models import RagasNpaDataset
 from ragas.metrics import (
-    Faithfulness, AnswerRelevance, ContextPrecision,
-    ContextRecall, SummarizationScore
+    Faithfulness,
+    AnswerRelevance,
+    ContextPrecision,
+    ContextRecall,
+    SummarizationScore,
 )
 from ragas import Ragas
 
@@ -14,7 +17,7 @@ metrics = [
     AnswerRelevance(),
     ContextPrecision(),
     ContextRecall(),
-    SummarizationScore()
+    SummarizationScore(),
 ]
 
 # Initialize RAGAS evaluator
@@ -31,17 +34,18 @@ def get_system_responses(questions):
     responses = []
     for question in questions:
         response = requests.post(
-            "http://interface:8000/ask/",
-            json={"text": question.question}
+            "http://interface:8000/ask/", json={"text": question.question}
         )
         response.raise_for_status()
         response_data = response.json()
-        responses.append({
-            "question": question.question,
-            "response": response_data["llm_response"],
-            "ground_truth": question.ground_truth,
-            "context": question.contexts
-        })
+        responses.append(
+            {
+                "question": question.question,
+                "response": response_data["llm_response"],
+                "ground_truth": question.ground_truth,
+                "context": question.contexts,
+            }
+        )
     return responses
 
 
