@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Text, JSON, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    JSON,
+    Boolean,
+    ForeignKey,
+    ARRAY,
+    Float,
+)
 from interface.database import Base
 
 
@@ -19,3 +29,12 @@ class HmaoNpaDataset(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     document_text = Column(Text, nullable=False)
+
+
+class DataChunks(Base):
+    __tablename__ = "data_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    parent_id = Column(Integer, ForeignKey("hmao_npa_dataset.id"), nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    vector = Column(ARRAY(Float), nullable=False)

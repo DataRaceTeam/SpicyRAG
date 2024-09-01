@@ -12,13 +12,19 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    command: >
+      bash -c "apt-get update &&
+               apt-get install -y postgresql-15-pgvector &&
+               docker-entrypoint.sh postgres"
 
   interface:
     build: .
     command: >
-      sh -c "python load_data.py && uvicorn interface.main:app --host 0.0.0.0 --port 8000"
+      sh -c "uvicorn interface.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
+    depends_on:
+      - db
 
   streamlit:
     build: .

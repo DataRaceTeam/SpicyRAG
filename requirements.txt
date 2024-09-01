@@ -2,9 +2,10 @@ fastapi
 uvicorn[standard]
 openai
 openpyxl
-sqlalchemy
-streamlit
 pandas
 psycopg2-binary
 pydantic
 pyyaml
+sentence-transformers
+sqlalchemy
+streamlit
