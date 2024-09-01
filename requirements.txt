@@ -6,6 +6,7 @@ pandas
 psycopg2-binary
 pydantic
 pyyaml
+ragas
 sentence-transformers
 sqlalchemy
 streamlit
