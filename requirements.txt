@@ -3,6 +3,7 @@ uvicorn[standard]
 openai
 openpyxl
 sqlalchemy
+streamlit
 pandas
 psycopg2-binary
 pydantic
