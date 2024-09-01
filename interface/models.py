@@ -6,10 +6,16 @@ from sqlalchemy import (
     JSON,
     Boolean,
     ForeignKey,
-    ARRAY,
-    Float,
 )
+from pgvector.sqlalchemy import Vector
 from interface.database import Base
+import yaml
+
+
+# Load configuration to access vector dimension
+config_path = "interface/config.yaml"
+with open(config_path, "r") as file:
+    config = yaml.safe_load(file)
 
 
 class RagasNpaDataset(Base):
@@ -37,4 +43,9 @@ class DataChunks(Base):
     id = Column(Integer, primary_key=True, index=True)
     parent_id = Column(Integer, ForeignKey("hmao_npa_dataset.id"), nullable=False)
     chunk_text = Column(Text, nullable=False)
-    vector = Column(ARRAY(Float), nullable=False)
+    vector = Column(Vector(config["embedding_model"]["dimension"]))
+
+    def __init__(self, parent_id, chunk_text, vector):
+        self.parent_id = parent_id
+        self.chunk_text = chunk_text
+        self.vector = vector

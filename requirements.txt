@@ -3,6 +3,7 @@ uvicorn[standard]
 openai
 openpyxl
 pandas
+pgvector
 psycopg2-binary
 pydantic
 pyyaml

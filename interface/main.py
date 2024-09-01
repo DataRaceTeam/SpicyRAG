@@ -1,40 +1,32 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from interface.database import engine
-from interface import utils, models, schemas
 import yaml
 import logging
-from openai import OpenAI
-from sentence_transformers import SentenceTransformer
+from interface import utils, models, schemas
+from interface.database import engine
 
 # Load configuration
 config_path = "interface/config.yaml"
-
 with open(config_path, "r") as file:
     config = yaml.safe_load(file)
+
+# Initialize logger
+logging.basicConfig(level=logging.getLevelName(config["logging"]["level"]))
+logger = logging.getLogger(config["project"]["name"])
 
 # Initialize the database
 models.Base.metadata.create_all(bind=engine)
 
-# Initialize logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(config["project"]["name"])
-
-# Initialize the local embedding model
-local_embedding_model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
-
-# Initialize LLM Client
-llm_base_url = config["llm"]["base_url"]
-llm_api_key = config["llm"]["api_key"]
-
-llm_client = OpenAI(base_url=llm_base_url, api_key=llm_api_key)
+# Initialize models and LLM client
+local_embedding_model = utils.initialize_embedding_model(config)
+llm_client = utils.initialize_llm_client(config)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
         logger.info("Starting data loading process.")
-        utils.load_data(local_embedding_model)  # Pass the local model to load_data
+        utils.load_data(local_embedding_model, config)  # Pass config to load_data
         logger.info("Data loading completed.")
     except Exception as e:
         logger.warning(f"Service starts without any data in the DB caused by: {e}")
@@ -53,3 +45,9 @@ def ask_question(question: schemas.QuestionCreate):
 
     logger.info(f"LLM Response: {response_content}")
     return {"llm_response": response_content}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host=config["server"]["host"], port=config["server"]["port"])

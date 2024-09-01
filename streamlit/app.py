@@ -1,5 +1,4 @@
 import streamlit as st
-from utils import evaluate_system
 import requests
 
 # Set up the Streamlit page configuration
@@ -55,13 +54,3 @@ for message in st.session_state.messages:
 
 # RAGAS Evaluation Section
 st.subheader("RAGAS Evaluation")
-
-# RAGAS Evaluation Button
-if st.button("Run RAGAS Evaluation"):
-    with st.spinner("Running evaluation"):
-        results = evaluate_system()
-
-        # Display the evaluation results
-        st.subheader("Evaluation Results")
-        for metric_name, score in results.items():
-            st.write(f"{metric_name}: {score:.2f}")
