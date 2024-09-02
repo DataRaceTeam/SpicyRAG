@@ -197,7 +197,7 @@ def retrieve_contexts(query, model, config):
         # Extract the chunk_texts from the results
         top_chunks = [result.DataChunks.chunk_text for result in results]
 
-        logger.info(f"Retrieved top {k} contexts for the query: {query[:30]}")
+        logger.info(f"Retrieved top {k} contexts for the query")
         return top_chunks
     except Exception as e:
         logger.error(f"Error retrieving contexts: {e}")
