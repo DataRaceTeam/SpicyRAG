@@ -1,4 +1,5 @@
 import requests
+import tqdm
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import RagasNpaDataset
@@ -39,7 +40,7 @@ def get_system_responses(questions):
     Send requests to the /ask endpoint and collect responses.
     """
     responses = []
-    for question in questions:
+    for question in tqdm.tqdm(questions):
         logger.info(f"Sending question to /ask endpoint: {question.question}")
         response = requests.post(
             "http://interface:8000/ask/", json={"text": question.question}
