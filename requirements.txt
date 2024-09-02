@@ -6,6 +6,7 @@ pandas
 pgvector
 psycopg2-binary
 pydantic
+pytest
 pyyaml
 ragas
 sentence-transformers

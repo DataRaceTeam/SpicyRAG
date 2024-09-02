@@ -44,7 +44,7 @@ def ask_question(question: schemas.QuestionCreate):
     response_content = utils.process_request(config, llm_client, question.text)
 
     logger.info(f"LLM Response: {response_content}")
-    return {"llm_response": response_content}
+    return response_content
 
 
 if __name__ == "__main__":

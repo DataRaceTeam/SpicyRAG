@@ -237,7 +237,7 @@ def build_prompt(contexts, query):
     """
     Constructs the prompt for the LLM based on the given contexts and query.
     """
-    prompt = "You are a knowledgeable assistant. Based on the following contexts, answer the question:\n"
+    prompt = "Ты являешься опытным и знающим ассистентом. На основе приведённых ниже контекстов, ответь на следующий вопрос:\n"
     for i, context in enumerate(contexts):
         prompt += f"Context {i + 1}: {context}\n"
     prompt += f"Question: {query}\nAnswer:"
@@ -251,7 +251,13 @@ def process_request(config, llm_client, query):
     try:
         model = initialize_embedding_model(config)
         contexts = retrieve_contexts(query, model, config)
-        return generate_response(llm_client, contexts, query, config)
+
+        # Generate the response
+        llm_response = generate_response(llm_client, contexts, query, config)
+
+        # Return both the response and the contexts used
+        return {"llm_response": llm_response, "contexts": contexts}
+
     except Exception as e:
         logger.error(f"Failed to process request: {e}")
         return (
