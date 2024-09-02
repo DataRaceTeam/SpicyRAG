@@ -17,7 +17,7 @@ server:
 
 llm:
   base_url: "https://integrate.api.nvidia.com/v1"
-  api_key: "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"
+  api_key: "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"
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   temperature: 0.2
@@ -34,6 +34,6 @@ data_sources:
   text_separator: "\n\n"
 
 data_processing:
-  chunk_size: 2048
+  chunk_size: 128
   top_k: 3
   similarity_threshold: 0.7

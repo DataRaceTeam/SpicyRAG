@@ -218,9 +218,14 @@ def generate_response(llm_client, contexts, query, config):
             temperature=config["llm"]["temperature"],
             top_p=config["llm"]["top_p"],
             max_tokens=config["llm"]["max_tokens"],
+            stream=True,
         )
 
-        generated_response = response.choices[0].message["content"]
+        generated_response = ""
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                generated_response += chunk.choices[0].delta.content
+
         logger.info(f"Generated response: {generated_response[:30]}...")
         return generated_response
     except Exception as e:
