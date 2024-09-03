@@ -1,3 +1,5 @@
+from pydoc import locate
+
 import pandas as pd
 import logging
 from openai import OpenAI
@@ -5,6 +7,7 @@ from sentence_transformers import SentenceTransformer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
+from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
 from interface.models import RagasNpaDataset, HmaoNpaDataset, DataChunks
 
@@ -130,11 +133,10 @@ def load_and_process_text_documents(db, model, config):
             db.add(hmao_entry)
             db.commit()
 
-            chunks = chunker(
-                text=hmao_entry.document_text,
-                max_length=config["data_processing"]["chunk_size"],
-                chunk_overlap=config["data_processing"]["chunk_overlap"],
-            )
+            chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
+            chunker: AbstractBaseChunker = chunker_cls(config["data_processing"]["chunker"]["kwargs"])
+            chunks = chunker.chunk(hmao_entry.document_text)
+
             store_chunks(db, hmao_entry.id, chunks, model, config)
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
