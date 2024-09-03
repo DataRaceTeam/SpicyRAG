@@ -218,7 +218,10 @@ def generate_response(llm_client, contexts, query, config):
         prompt = build_prompt(contexts, query)
         response = llm_client.chat.completions.create(
             model=config["llm"]["model"],
-            messages=[{"role": config["llm"]["role"], "content": prompt}],
+            messages=[
+                {"role": "system", "content": config["llm"]["system_prompt"]},
+                {"role": config["llm"]["role"], "content": prompt}
+                ],
             temperature=config["llm"]["temperature"],
             top_p=config["llm"]["top_p"],
             max_tokens=config["llm"]["max_tokens"],
@@ -241,11 +244,41 @@ def build_prompt(contexts, query):
     """
     Constructs the prompt for the LLM based on the given contexts and query.
     """
-    prompt = "Ты являешься опытным и знающим ассистентом. На основе приведённых ниже контекстов, ответь на следующий вопрос:\n"
+
+    prompt = "Отвечай используя контекст:\n"
     for i, context in enumerate(contexts):
-        prompt += f"Context {i + 1}: {context}\n"
-    prompt += f"Question: {query}\nAnswer:"
+        prompt += f"Контекст {i + 1}: {context}\n"
+    prompt += f"Вопрос: {query}\nAnswer:"
     return prompt
+
+
+def rewrite_query(llm_client, query, config):
+    """
+    Rewrites user's query using LLM_rewriter
+    """
+    try:
+        response = llm_client.chat.completions.create(
+            model=config["llm_rewriter"]["model"],
+            messages=[
+                {"role": "system", "content": config["llm"]["system_prompt"]},
+                {"role": config["llm_rewriter"]["role"], "content": query}
+                ],
+            temperature=config["llm_rewriter"]["temperature"],
+            top_p=config["llm_rewriter"]["top_p"],
+            max_tokens=config["llm_rewriter"]["max_tokens"],
+            stream=True,
+        )
+
+        rewrited_query = ""
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                rewrited_query += chunk.choices[0].delta.content
+
+        logger.info(f"Rewrited query: {rewrited_query[:30]}...")
+        return rewrited_query
+    except Exception as e:
+        logger.error(f"Error rewriting query: {e}")
+        raise
 
 
 def process_request(config, llm_client, query):
@@ -254,7 +287,8 @@ def process_request(config, llm_client, query):
     """
     try:
         model = initialize_embedding_model(config)
-        contexts = retrieve_contexts(query, model, config)
+        rewrited_query = rewrite_query(llm_client, query, config)
+        contexts = retrieve_contexts(rewrited_query, model, config)     # В ретривер отправляется переписанный запрос
 
         # Generate the response
         llm_response = generate_response(llm_client, contexts, query, config)
