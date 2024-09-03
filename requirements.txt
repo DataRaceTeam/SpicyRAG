@@ -12,3 +12,4 @@ ragas
 sentence-transformers
 sqlalchemy
 streamlit
+langchain
