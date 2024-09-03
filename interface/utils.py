@@ -260,7 +260,7 @@ def rewrite_query(llm_client, query, config):
         response = llm_client.chat.completions.create(
             model=config["llm_rewriter"]["model"],
             messages=[
-                {"role": "system", "content": config["llm"]["system_prompt"]},
+                {"role": "system", "content": config["llm_rewriter"]["system_prompt"]},
                 {"role": config["llm_rewriter"]["role"], "content": query}
                 ],
             temperature=config["llm_rewriter"]["temperature"],
