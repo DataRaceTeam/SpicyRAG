@@ -22,7 +22,7 @@ llm:
   role: "user"
   temperature: 0.2
   top_p: 0.7
-  max_tokens: 1024
+  max_tokens: 4096
 
 embedding_model:
   name: "paraphrase-MiniLM-L6-v2"
@@ -34,6 +34,7 @@ data_sources:
   text_separator: "\n\n"
 
 data_processing:
-  chunk_size: 128
+  chunk_size: 2048
+  overlap_percentage: 0.125
   top_k: 3
   similarity_threshold: 0.7

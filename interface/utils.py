@@ -130,7 +130,9 @@ def load_and_process_text_documents(db, model, config):
             db.commit()
 
             chunks = chunker(
-                hmao_entry.document_text, config["data_processing"]["chunk_size"]
+                text=hmao_entry.document_text,
+                max_length=config["data_processing"]["chunk_size"],
+                overlap_percentage=config["data_processing"]["overlap_percentage"],
             )
             store_chunks(db, hmao_entry.id, chunks, model, config)
         logger.info(f"Processed and stored chunks from {file_path}")

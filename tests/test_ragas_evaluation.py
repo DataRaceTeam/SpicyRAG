@@ -10,7 +10,6 @@ from ragas.metrics import (
     ContextRecall,
     SummarizationScore,
 )
-from ragas import evaluate
 import logging
 
 # Set up logging
