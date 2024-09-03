@@ -1,8 +1,8 @@
 import requests
 import tqdm
 from sqlalchemy.orm import Session
-from database import SessionLocal
-from models import RagasNpaDataset
+from interface.database import SessionLocal
+from interface.models import RagasNpaDataset
 from ragas.metrics import (
     Faithfulness,
     AnswerRelevancy,
