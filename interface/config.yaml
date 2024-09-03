@@ -59,7 +59,22 @@ data_sources:
   text_separator: "\n\n"
 
 data_processing:
-  chunk_size: 2048
-  overlap_percentage: 0.125
+  chunker:
+    py_class: interface.chunker.RecursiveCharacterTextSplitterChunker
+    kwargs:
+      chunk_size: 2048
+      chunk_overlap: 256
+      separators:
+        - '\n#{1,6} '
+        - '```\n'
+        - '\n\\*\\*\\*+\n'
+        - '\n---+\n'
+        - '\n___+\n'
+        - '\n\n'
+        - '\n'
+        - ' '
+        - ''
+        - ','
+        - '|'
   top_k: 3
   similarity_threshold: 0.7
