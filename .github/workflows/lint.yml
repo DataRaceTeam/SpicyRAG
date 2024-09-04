@@ -1,34 +1,8 @@
-name: Run Linter
-
-on:
-  # Trigger the workflow on push or pull request events to the main branch
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
+name: Ruff
+on: [push, pull_request]
 jobs:
-  lint:
+  ruff:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      # Set up Python environment with version 3.10
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # Install Ruff via pip
-      - name: Install Ruff
-        run: pip install ruff
-
-      # Run Ruff with a custom config file (ruff.toml)
-      - name: Run Ruff
-        run: ruff check . --config ruff.toml --fix
-        env:
-          RUFF_FORMAT: github
-
-    # Fail the workflow if Ruff linter fails
-    if: failure() # This will ensure the job fails when the linter doesn't pass
+      - uses: chartboost/ruff-action@v1
