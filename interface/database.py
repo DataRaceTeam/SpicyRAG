@@ -1,7 +1,7 @@
+import yaml
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import yaml
 
 # Load configuration
 config_path = "interface/config.yaml"

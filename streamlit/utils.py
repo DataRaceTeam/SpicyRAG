@@ -1,12 +1,12 @@
 import requests
+from ragas import Ragas
 from ragas.metrics import (
-    Faithfulness,
     AnswerRelevance,
     ContextPrecision,
     ContextRecall,
+    Faithfulness,
     SummarizationScore,
 )
-from ragas import Ragas
 
 # Initialize RAGAS metrics
 metrics = [
