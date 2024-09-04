@@ -1,15 +1,15 @@
+import logging
 from pydoc import locate
 
 import pandas as pd
-import logging
-from openai import OpenAI
-from sentence_transformers import SentenceTransformer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from openai import OpenAI
+from sentence_transformers import SentenceTransformer
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
-from interface.models import RagasNpaDataset, HmaoNpaDataset, DataChunks
+from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
 
 logger = logging.getLogger(__name__)
 

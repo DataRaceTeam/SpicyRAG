@@ -1,29 +1,14 @@
+import logging
+
 import requests
 import tqdm
+from database import SessionLocal
+from models import RagasNpaDataset
 from sqlalchemy.orm import Session
-from interface.database import SessionLocal
-from interface.models import RagasNpaDataset
-from ragas.metrics import (
-    Faithfulness,
-    AnswerRelevancy,
-    ContextPrecision,
-    ContextRecall,
-    SummarizationScore,
-)
-import logging
 
 # Set up logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-
-# Initialize RAGAS metrics
-metrics = [
-    Faithfulness(),
-    AnswerRelevancy(),
-    ContextPrecision(),
-    ContextRecall(),
-    SummarizationScore(),
-]
 
 
 def load_test_data(db: Session, max_cases: int = 1):
@@ -82,19 +67,9 @@ def test_evaluate_system():
         # Send questions to the /ask endpoint and collect responses
         system_responses = get_system_responses(test_data)
 
-        # Prepare data for RAGAS evaluation
-        predictions = [response["response"] for response in system_responses]
-        references = [response["ground_truth"] for response in system_responses]
-        contexts = [response["context"] for response in system_responses]
+        assert system_responses is not None
+        assert system_responses["status"] == 200
 
-        # Evaluate the system using RAGAS
-        # logger.info("Evaluating system responses using RAGAS")
-        # results = evaluate(predictions, references, contexts, metrics=metrics)
-        #
-        # # Assertions for each metric to ensure tests pass if scores are above a threshold
-        # for metric_name, score in results.items():
-        #     logger.info(f"{metric_name}: {score:.2f}")
-        #     assert score > 0.01, f"{metric_name} score is too low: {score}"
     finally:
         db.close()
         logger.info("Database connection closed")
