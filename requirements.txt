@@ -12,6 +12,7 @@ attrs==24.2.0
 blinker==1.8.2
 cachetools==5.5.0
 certifi==2024.8.30
+cfgv==3.4.0
 charset-normalizer==3.3.2
 click==8.1.7
 cloudpickle==3.0.0
@@ -22,6 +23,7 @@ dataclasses-json==0.6.7
 datasets==2.21.0
 Deprecated==1.2.14
 dill==0.3.8
+distlib==0.3.8
 distro==1.9.0
 docker==7.1.0
 et-xmlfile==1.1.0
@@ -44,6 +46,7 @@ httpcore==1.0.5
 httptools==0.6.1
 httpx==0.27.2
 huggingface-hub==0.24.6
+identify==2.6.0
 idna==3.8
 importlib_metadata==8.4.0
 importlib_resources==6.4.4
@@ -79,6 +82,7 @@ mypy-extensions==1.0.0
 narwhals==1.6.0
 nest-asyncio==1.6.0
 networkx==3.2.1
+nodeenv==1.9.1
 numpy==1.26.4
 openai==1.43.0
 openpyxl==3.1.5
@@ -90,7 +94,9 @@ packaging==24.1
 pandas==2.2.2
 pgvector==0.3.2
 pillow==10.4.0
+platformdirs==4.2.2
 pluggy==1.5.0
+pre-commit==3.8.0
 protobuf==5.28.0
 psycopg2-binary==2.9.9
 pyarrow==17.0.0
@@ -142,6 +148,7 @@ tzdata==2024.1
 urllib3==2.2.2
 uvicorn==0.30.6
 uvloop==0.20.0
+virtualenv==20.26.3
 watchfiles==0.24.0
 websockets==13.0.1
 Werkzeug==3.0.4
