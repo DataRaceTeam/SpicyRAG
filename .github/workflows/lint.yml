@@ -12,11 +12,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository to the GitHub Actions runner
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # Run Ruff linter using the ruff-action
+      # Run Ruff with a custom config file (ruff.toml)
       - name: Run Ruff
         uses: nkarasiak/ruff-action@v1
         with:
-          args: --config ruff.toml
+          args: --config ruff.toml --fix
