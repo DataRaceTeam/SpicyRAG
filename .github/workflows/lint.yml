@@ -26,20 +26,9 @@ jobs:
 
       # Run Ruff with a custom config file (ruff.toml)
       - name: Run Ruff
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            python $GITHUB_ACTION_PATH/action/main.py check .
-          else
-            python3 $GITHUB_ACTION_PATH/action/main.py check .
+        run: ruff check . --config ruff.toml --fix
         env:
           RUFF_FORMAT: github
-          INPUT_ARGS: --config ruff.toml --fix
-          INPUT_SRC: .
-          INPUT_VERSION:
-          pythonioencoding: utf-8
 
-    # Block PR if Ruff check fails
-    outputs:
-      lint_passed: ${{ steps.lint.outcome }}
-    if: failure()
-    continue-on-error: false
+    # Fail the workflow if Ruff linter fails
+    if: failure() # This will ensure the job fails when the linter doesn't pass
