@@ -15,8 +15,14 @@ class BaseTextTransformation(ABC):
 
 class RegexpTextTransformation(BaseTextTransformation):
 
+    def __init__(self, **kwargs):
+        self.re_kwargs = kwargs
+
     def transform(self, text: str) -> str:
-        pass
+        result = text
+        for pattern, value in self.re_kwargs:
+            result = re.sub(pattern, value, result, flags=re.IGNORECASE)
+        return result
 
 
 class TfidfFilterTextTransformation(BaseTextTransformation):
@@ -25,19 +31,19 @@ class TfidfFilterTextTransformation(BaseTextTransformation):
         self.vectorizer = TfidfVectorizer(**kwargs)
         self.quantile = quantile
         self.pattern = None
+        self.tfidf_stat_df = None
 
-    def fit(self, documents: list[Document]) -> None:
-        X = self.vectorizer.fit_transform([d.page_content for d in documents])
-        tfidf_stat_df = pd.DataFrame(
+    def fit(self, documents: list[str]) -> None:
+        X = self.vectorizer.fit_transform(documents)
+        self.tfidf_stat_df = pd.DataFrame(
             X.toarray(),
             columns=self.vectorizer.get_feature_names_out()
         ).mean(axis=0)
 
-        words = tfidf_stat_df[tfidf_stat_df < tfidf_stat_df.quantile(self.quantile)]
+        words = self.tfidf_stat_df[self.tfidf_stat_df < self.tfidf_stat_df.quantile(self.quantile)]
         less_significant_words = words.index.tolist()
-
         self.pattern = r"\b({})".format("|".join(less_significant_words))
 
     def transform(self, text: str) -> str:
-        return re.sub(self.pattern, "", text, flags=re.IGNORECASE)
+        return re.sub(self.pattern, "", text, flags=re.IGNORECASE).strip()
 
