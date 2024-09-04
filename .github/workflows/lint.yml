@@ -1,0 +1,22 @@
+name: Run Linter
+
+on:
+  # Trigger the workflow on push or pull request events to the main branch
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - uses: actions/checkout@v3
+
+      # Run Ruff linter using the ruff-action
+      - name: Run Ruff
+        uses: nkarasiak/ruff-action@v1
+        with:
+          args: --config ruff.toml
