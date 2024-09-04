@@ -16,6 +16,6 @@ jobs:
 
       # Run Ruff with a custom config file (ruff.toml)
       - name: Run Ruff
-        uses: nkarasiak/ruff-action@v1
+        uses: chartboost/ruff-action@v1
         with:
           args: --config ruff.toml --fix
