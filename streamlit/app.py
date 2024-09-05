@@ -1,5 +1,6 @@
-import streamlit as st
 import requests
+
+import streamlit as st
 
 # Set up the Streamlit page configuration
 st.set_page_config(page_title="NPA knowledge Ecosystem", page_icon="_")

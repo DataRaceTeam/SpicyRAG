@@ -16,8 +16,8 @@ server:
   port: 8000
 
 llm:
-  base_url: "https://integrate.api.nvidia.com/v1"
-  api_key: "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"
+  base_url: "${LLM_BASE_URL}"
+  api_key: "${LLM_API_KEY}"
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
@@ -36,8 +36,8 @@ llm:
   max_tokens: 4096
 
 llm_rewriter:
-  base_url: "https://integrate.api.nvidia.com/v1"
-  api_key: "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"
+  base_url: "${LLM_REWRITER_BASE_URL}"
+  api_key: "${LLM_REWRITER_API_KEY}"
   model: "meta/llama-3.1-8b-instruct"
   role: "user"
   system_prompt: |

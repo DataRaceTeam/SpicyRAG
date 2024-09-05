@@ -1,8 +1,10 @@
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-import yaml
 import logging
-from interface import utils, models, schemas
+from contextlib import asynccontextmanager
+
+import yaml
+from fastapi import FastAPI
+
+from interface import models, schemas, utils
 from interface.database import engine
 
 # Load configuration

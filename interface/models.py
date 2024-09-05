@@ -1,16 +1,16 @@
+import yaml
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    JSON,
+    Boolean,
     Column,
+    ForeignKey,
     Integer,
     String,
     Text,
-    JSON,
-    Boolean,
-    ForeignKey,
 )
-from pgvector.sqlalchemy import Vector
-from interface.database import Base
-import yaml
 
+from interface.database import Base
 
 # Load configuration to access vector dimension
 config_path = "interface/config.yaml"
