@@ -33,7 +33,7 @@ llm:
     ВАЖНО: не упоминай, что ты работаешь с контекстом! Отвечай структурно и по пунктам.
   temperature: 0.15
   top_p: 0.7
-  max_tokens: 4096
+  max_tokens: 10000
 
 llm_rewriter:
   base_url: "${LLM_REWRITER_BASE_URL}"
@@ -51,7 +51,7 @@ llm_rewriter:
 
 embedding_model:
   name: "d0rj/e5-base-en-ru"
-  dimension: 1024
+  dimension: 768
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
@@ -62,8 +62,8 @@ data_processing:
   chunker:
     py_class: interface.chunker.RecursiveCharacterTextSplitterChunker
     kwargs:
-      chunk_size: 2048
-      chunk_overlap: 256
+      chunk_size: 550
+      chunk_overlap: 128
       separators:
         - '\n#{1,6} '
         - '```\n'

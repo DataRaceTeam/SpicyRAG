@@ -1,11 +1,12 @@
 import logging
-import torch.nn.functional as F
 from pydoc import locate
+
 import pandas as pd
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from transformers import AutoTokenizer, AutoModel
 from openai import OpenAI
+from sentence_transformers import SentenceTransformer
+
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
 from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
@@ -34,10 +35,9 @@ def initialize_embedding_model(config):
     """
     try:
         model_name = config["embedding_model"]["name"]
-        tokenizer = AutoTokenizer.from_pretrained(model_name, use_cache=False)
-        model = AutoModel.from_pretrained(model_name, use_cache=False)
+        model = SentenceTransformer(model_name)
         logger.info(f"Initialized embedding model {model_name}")
-        return model, tokenizer
+        return model
     except Exception as e:
         logger.error(f"Failed to initialize embedding model: {e}")
         raise
@@ -119,7 +119,7 @@ def load_excel_data(db, config):
         raise
 
 
-def load_and_process_text_documents(db, model, tokenizer, config):
+def load_and_process_text_documents(db, model, config):
     """
     Loads and processes text documents, chunking and vectorizing the content.
     """
@@ -135,24 +135,27 @@ def load_and_process_text_documents(db, model, tokenizer, config):
             db.commit()
 
             chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
-            chunker: AbstractBaseChunker = chunker_cls(config["data_processing"]["chunker"]["kwargs"])
+            # TODO: fix kwargs
+            chunker: AbstractBaseChunker = chunker_cls(chunk_size=config["data_processing"]["chunker"]["kwargs"]["chunk_size"],
+                                                       chunk_overlap=config["data_processing"]["chunker"]["kwargs"]["chunk_overlap"],
+                                                       separators=config["data_processing"]["chunker"]["kwargs"]["separators"])
             chunks = chunker.chunk(hmao_entry.document_text)
 
-            store_chunks(db, hmao_entry.id, chunks, model, tokenizer, config)
+            store_chunks(db, hmao_entry.id, chunks, model, config)
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
         raise
 
 
-def store_chunks(db, parent_id, chunks, model, tokenizer, config):
+def store_chunks(db, parent_id, chunks, model, config):
     """
     Vectorizes and stores text chunks in the database.
     """
     try:
         for chunk in chunks:
-            vector = vectorize(chunk, model, tokenizer)
-            db_chunk = DataChunks(parent_id=parent_id, chunk_text=chunk, vector=vector)
+            vector = vectorize(chunk, model)
+            db_chunk = DataChunks(parent_id=parent_id, chunk_text=chunk.page_content, vector=vector)
             db.add(db_chunk)
         db.commit()
     except Exception as e:
@@ -160,28 +163,44 @@ def store_chunks(db, parent_id, chunks, model, tokenizer, config):
         raise
 
 
-def vectorize(text, model, tokenizer):
+def vectorize(text, model):
     """
-    Vectorizes a given text input using the provided model and tokenizer.
+    Vectorizes a given text input using the provided model.
+    Accepts a string or Document object and handles the conversion.
     """
     try:
-        batch_dict = tokenizer([text], max_length=512, padding=True, truncation=True, return_tensors='pt')
-        outputs = model(**batch_dict)
-        embeddings = average_pool(outputs.last_hidden_state, batch_dict['attention_mask'])
-        embeddings = F.normalize(embeddings, p=2, dim=1)
+        # TODO: align output / input of classes
+        # TODO: align size of chunk with embedding model dim
+        # Validate and extract text from Document if necessary
+        if isinstance(text, Document):
+            logger.info(f"Extracting text from Document type {type(text)}")
+            text = text.page_content  # Assuming `Document.page_content` holds the text
+
+        elif not isinstance(text, str):
+            raise ValueError("Text input must be of type `str` or `Document`.")
+
+        # Ensure the text is not empty
+        if not text.strip():
+            raise ValueError("Text input is empty. Cannot vectorize empty text.")
+
+        # Tokenize and vectorize the text
+        logger.info(f"Vectorizing text with length {len(text)}")
+        embeddings = model.encode(text, convert_to_tensor=True)
+
+        logger.info("Vectorization completed")
         return embeddings.squeeze().tolist()
     except Exception as e:
         logger.error(f"Failed to vectorize text: {e}")
         raise
 
 
-def retrieve_contexts(query, model, tokenizer, config):
+def retrieve_contexts(query, model, config):
     """
     Retrieves the most relevant contexts from DataChunks for a given query using vector search.
     """
     db = SessionLocal()
     try:
-        query_vector = vectorize(query, model, tokenizer)
+        query_vector = vectorize(query, model)
         k = config["data_processing"]["top_k"]
         similarity_threshold = config["data_processing"]["similarity_threshold"]
 
@@ -287,9 +306,9 @@ def process_request(config, llm_client, query):
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
-        model, tokenizer = initialize_embedding_model(config)
+        model = initialize_embedding_model(config)
         rewrited_query = rewrite_query(llm_client, query, config)
-        contexts = retrieve_contexts(rewrited_query, model, tokenizer, config)
+        contexts = retrieve_contexts(rewrited_query, model, config)
 
         # Generate the response
         llm_response = generate_response(llm_client, contexts, query, config)
