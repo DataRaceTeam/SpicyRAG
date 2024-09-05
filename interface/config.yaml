@@ -50,8 +50,8 @@ llm_rewriter:
   max_tokens: 1024
 
 embedding_model:
-  name: "d0rj/e5-base-en-ru"
-  dimension: 768
+  name: "paraphrase-MiniLM-L6-v2"
+  dimension: 384
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
@@ -62,7 +62,7 @@ data_processing:
   chunker:
     py_class: interface.chunker.RecursiveCharacterTextSplitterChunker
     kwargs:
-      chunk_size: 550
+      chunk_size: 2048
       chunk_overlap: 128
       separators:
         - '\n#{1,6} '
