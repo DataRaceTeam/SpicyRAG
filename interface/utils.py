@@ -1,15 +1,15 @@
+import logging
 from pydoc import locate
 
 import pandas as pd
-import logging
-from openai import OpenAI
-from sentence_transformers import SentenceTransformer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from openai import OpenAI
+from sentence_transformers import SentenceTransformer
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
-from interface.models import RagasNpaDataset, HmaoNpaDataset, DataChunks
+from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def chunker(text, max_length, chunk_overlap=256):
         chunk_size=max_length,
         chunk_overlap=chunk_overlap,
         length_function=len,
-        is_separator_regex=False
+        is_separator_regex=False,
     )
 
     return text_splitter.split_documents([Document(text)])
@@ -122,6 +122,21 @@ def load_and_process_text_documents(db, model, config):
     """
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
+
+    chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
+    chunker: AbstractBaseChunker = chunker_cls(
+        config["data_processing"]["chunker"]["kwargs"]
+    )
+
+    text_transformers = [
+        c["py_class"](**c.get("kwargs"))
+        for c in config["data_processing"]["text_transformers"]
+    ]
+    chunk_transformers = [
+        c["py_class"](**c.get("kwargs"))
+        for c in config["data_processing"]["chunk_transformers"]
+    ]
+
     try:
         file_path = config["data_sources"]["text_file"]
         separator = config["data_sources"]["text_separator"]
@@ -133,9 +148,13 @@ def load_and_process_text_documents(db, model, config):
             db.add(hmao_entry)
             db.commit()
 
-            chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
-            chunker: AbstractBaseChunker = chunker_cls(config["data_processing"]["chunker"]["kwargs"])
-            chunks = chunker.chunk(hmao_entry.document_text)
+            text = hmao_entry.document_text
+            for transformer in text_transformers:
+                text = transformer.transform(text)
+
+            chunks = chunker.chunk(text)
+            for transformer in chunk_transformers:
+                chunks = transformer.transform(chunks)
 
             store_chunks(db, hmao_entry.id, chunks, model, config)
         logger.info(f"Processed and stored chunks from {file_path}")
@@ -220,8 +239,8 @@ def generate_response(llm_client, contexts, query, config):
             model=config["llm"]["model"],
             messages=[
                 {"role": "system", "content": config["llm"]["system_prompt"]},
-                {"role": config["llm"]["role"], "content": prompt}
-                ],
+                {"role": config["llm"]["role"], "content": prompt},
+            ],
             temperature=config["llm"]["temperature"],
             top_p=config["llm"]["top_p"],
             max_tokens=config["llm"]["max_tokens"],
@@ -261,8 +280,8 @@ def rewrite_query(llm_client, query, config):
             model=config["llm_rewriter"]["model"],
             messages=[
                 {"role": "system", "content": config["llm_rewriter"]["system_prompt"]},
-                {"role": config["llm_rewriter"]["role"], "content": query}
-                ],
+                {"role": config["llm_rewriter"]["role"], "content": query},
+            ],
             temperature=config["llm_rewriter"]["temperature"],
             top_p=config["llm_rewriter"]["top_p"],
             max_tokens=config["llm_rewriter"]["max_tokens"],
@@ -288,7 +307,9 @@ def process_request(config, llm_client, query):
     try:
         model = initialize_embedding_model(config)
         rewrited_query = rewrite_query(llm_client, query, config)
-        contexts = retrieve_contexts(rewrited_query, model, config)     # В ретривер отправляется переписанный запрос
+        contexts = retrieve_contexts(
+            rewrited_query, model, config
+        )  # В ретривер отправляется переписанный запрос
 
         # Generate the response
         llm_response = generate_response(llm_client, contexts, query, config)

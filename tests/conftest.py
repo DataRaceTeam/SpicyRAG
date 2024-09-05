@@ -18,7 +18,7 @@ def pytest_configure():
 
 @pytest.fixture
 def text_hmao_npa_df():
-    with open("../data/hmao_npa.txt") as file:
+    with open("data/hmao_npa.txt") as file:
         raw_text = file.read()
 
     raw_docs = raw_text.split("\n")
