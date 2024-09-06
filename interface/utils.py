@@ -2,14 +2,13 @@ import logging
 from pydoc import locate
 
 import pandas as pd
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
 from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
+from interface.text_transformation import BaseTextTransformation
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +39,6 @@ def initialize_embedding_model(config):
     except Exception as e:
         logger.error(f"Failed to initialize embedding model: {e}")
         raise
-
-
-def chunker(text, max_length, chunk_overlap=256):
-    """
-    Splits the given text into smaller chunks with an optional overlap.
-    """
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=max_length,
-        chunk_overlap=chunk_overlap,
-        length_function=len,
-        is_separator_regex=False,
-    )
-
-    return text_splitter.split_documents([Document(text)])
 
 
 def load_data(model, config):
@@ -118,13 +103,31 @@ def load_excel_data(db, config):
         raise
 
 
+def split_text(
+    text: str,
+    text_transformers: list[AbstractBaseChunker],
+    chunker: AbstractBaseChunker,
+    chunk_transformers: list[BaseTextTransformation],
+) -> list[str]:
+    for transformer in text_transformers:
+        text = transformer.transform(text)
+
+    chunks = chunker.chunk(text)
+    for transformer in chunk_transformers:
+        chunks = transformer.transform(chunks)
+
+    return chunks
+
+
 def load_and_process_text_documents(db, model, config):
     """
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
 
     chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
-    chunker: AbstractBaseChunker = chunker_cls(**config["data_processing"]["chunker"]["kwargs"])
+    chunker: AbstractBaseChunker = chunker_cls(
+        **config["data_processing"]["chunker"]["kwargs"]
+    )
 
     text_transformers = [
         c["py_class"](**c.get("kwargs"))
@@ -135,48 +138,45 @@ def load_and_process_text_documents(db, model, config):
         for c in config["data_processing"].get("chunk_transformers", [])
     ]
 
+    file_path = config["data_sources"]["text_file"]
+    separator = config["data_sources"]["text_separator"]
+    with open(file_path, "r", encoding="utf-8") as file:
+        content = file.read().split(separator)
+
     try:
-        file_path = config["data_sources"]["text_file"]
-        separator = config["data_sources"]["text_separator"]
-        with open(file_path, "r", encoding="utf-8") as file:
-            content = file.read().split(separator)
+        hmao_entries = [
+            HmaoNpaDataset(document_text=document.strip()) for document in content
+        ]
+        db.add_all(hmao_entries)
+        db.commit()
 
-        for document in content:
-            hmao_entry = HmaoNpaDataset(document_text=document.strip())
-            db.add(hmao_entry)
-            db.commit()
+        chunks_lists = []
+        for i, document in enumerate(content):
+            chunks_lists.extend(
+                [
+                    (i, c)
+                    for c in split_text(
+                        document.strip(), text_transformers, chunker, chunk_transformers
+                    )
+                ]
+            )
 
-            text = hmao_entry.document_text
-            for transformer in text_transformers:
-                text = transformer.transform(text)
+        vectors = vectorize([c[1] for c in chunks_lists], model)
 
-            chunks = chunker.chunk(text)
-            for transformer in chunk_transformers:
-                chunks = transformer.transform(chunks)
+        for chunk_collection, vector in zip(chunks_lists, vectors):
+            doc_id = chunk_collection[0]
+            chunk = chunk_collection[1]
 
-            store_chunks(db, hmao_entry.id, chunks, model, config)
+            db_chunk = DataChunks(parent_id=doc_id, chunk_text=chunk, vector=vector)
+            db.add(db_chunk)
+
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
         raise
 
 
-def store_chunks(db, parent_id, chunks, model, config):
-    """
-    Vectorizes and stores text chunks in the database.
-    """
-    try:
-        for chunk in chunks:
-            vector = vectorize(chunk, model)
-            db_chunk = DataChunks(parent_id=parent_id, chunk_text=chunk, vector=vector)
-            db.add(db_chunk)
-        db.commit()
-    except Exception as e:
-        logger.error(f"Error storing chunks in the database: {e}")
-        raise
-
-
-def vectorize(chunk, model):
+def vectorize(chunk: list[str], model) -> list[list[float]]:
     """
     Vectorizes a given text chunk using the provided model.
     """

@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   db:
@@ -26,11 +26,13 @@ services:
         echo 'Waiting for Postgres...'
         sleep 2
       done &&
-      uvicorn interface.main:app --host 0.0.0.0 --port 8000"
+      uvicorn interface.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     depends_on:
       - db
+    volumes:
+      - ./interface:/app/interface
 
   streamlit:
     build: .
