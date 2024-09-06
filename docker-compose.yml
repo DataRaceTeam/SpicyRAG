@@ -21,7 +21,12 @@ services:
   interface:
     build: .
     command: >
-      sh -c "uvicorn interface.main:app --host 0.0.0.0 --port 8000"
+      sh -c "
+      until pg_isready -h db -p 5432; do
+        echo 'Waiting for Postgres...'
+        sleep 2
+      done &&
+      uvicorn interface.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     depends_on:
