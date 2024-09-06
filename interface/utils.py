@@ -124,17 +124,15 @@ def load_and_process_text_documents(db, model, config):
     """
 
     chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
-    chunker: AbstractBaseChunker = chunker_cls(
-        config["data_processing"]["chunker"]["kwargs"]
-    )
+    chunker: AbstractBaseChunker = chunker_cls(**config["data_processing"]["chunker"]["kwargs"])
 
     text_transformers = [
         c["py_class"](**c.get("kwargs"))
-        for c in config["data_processing"]["text_transformers"]
+        for c in config["data_processing"].get("text_transformers", [])
     ]
     chunk_transformers = [
         c["py_class"](**c.get("kwargs"))
-        for c in config["data_processing"]["chunk_transformers"]
+        for c in config["data_processing"].get("chunk_transformers", [])
     ]
 
     try:

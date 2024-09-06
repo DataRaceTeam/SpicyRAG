@@ -24,9 +24,7 @@ class RecursiveCharacterTextSplitterChunker(AbstractBaseChunker):
         )
 
     def chunk(self, text: str) -> list[str]:
-        return [
-            d.page_content for d in self.text_splitter.split_documents([Document(text)])
-        ]
+        return self.text_splitter.split_text(text)
 
 
 class SemanticTextChunker(AbstractBaseChunker):
