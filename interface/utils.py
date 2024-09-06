@@ -294,7 +294,7 @@ def process_request(config, llm_client, query):
         llm_response = generate_response(llm_client, contexts, query, config)
 
         # Return both the response and the contexts used
-        return {"llm_response": llm_response, "contexts": contexts}
+        return {"response": llm_response, "context": contexts}
 
     except Exception as e:
         logger.error(f"Failed to process request: {e}")

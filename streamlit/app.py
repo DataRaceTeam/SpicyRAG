@@ -19,14 +19,14 @@ def send_message(user_input):
     api_url = "http://interface:8000/ask/"
 
     # Prepare the payload
-    payload = {"text": user_input}
+    payload = {"question": user_input}
 
     # Send POST request to FastAPI backend
     response = requests.post(api_url, json=payload)
 
     # Check if request was successful
     if response.status_code == 200:
-        return response.json()["llm_response"]
+        return response.json()["response"]
     else:
         return "Error: Could not reach the backend."
 
@@ -52,6 +52,3 @@ for message in st.session_state.messages:
         st.write(f"Request: {message['content']}")
     else:
         st.write(f"Response: {message['content']}")
-
-# RAGAS Evaluation Section
-st.subheader("RAGAS Evaluation")
