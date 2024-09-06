@@ -51,7 +51,7 @@ def chunker(text, max_length, chunk_overlap=256):
         chunk_size=max_length,
         chunk_overlap=chunk_overlap,
         length_function=len,
-        is_separator_regex=False
+        is_separator_regex=False,
     )
 
     return text_splitter.split_documents([Document(text)])
@@ -123,6 +123,21 @@ def load_and_process_text_documents(db, model, config):
     """
     Loads and processes text documents, chunking and vectorizing the content.
     """
+
+    chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
+    chunker: AbstractBaseChunker = chunker_cls(
+        config["data_processing"]["chunker"]["kwargs"]
+    )
+
+    text_transformers = [
+        c["py_class"](**c.get("kwargs"))
+        for c in config["data_processing"]["text_transformers"]
+    ]
+    chunk_transformers = [
+        c["py_class"](**c.get("kwargs"))
+        for c in config["data_processing"]["chunk_transformers"]
+    ]
+
     try:
         file_path = config["data_sources"]["text_file"]
         separator = config["data_sources"]["text_separator"]
@@ -133,13 +148,13 @@ def load_and_process_text_documents(db, model, config):
             hmao_entry = HmaoNpaDataset(document_text=document.strip())
             db.add(hmao_entry)
             db.commit()
+            text = hmao_entry.document_text
+            for transformer in text_transformers:
+                text = transformer.transform(text)
 
-            chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
-            # TODO: fix kwargs
-            chunker: AbstractBaseChunker = chunker_cls(chunk_size=config["data_processing"]["chunker"]["kwargs"]["chunk_size"],
-                                                       chunk_overlap=config["data_processing"]["chunker"]["kwargs"]["chunk_overlap"],
-                                                       separators=config["data_processing"]["chunker"]["kwargs"]["separators"])
-            chunks = chunker.chunk(hmao_entry.document_text)
+            chunks = chunker.chunk(text)
+            for transformer in chunk_transformers:
+                chunks = transformer.transform(chunks)
 
             store_chunks(db, hmao_entry.id, chunks, model, config)
         logger.info(f"Processed and stored chunks from {file_path}")
@@ -155,7 +170,9 @@ def store_chunks(db, parent_id, chunks, model, config):
     try:
         for chunk in chunks:
             vector = vectorize(chunk, model)
-            db_chunk = DataChunks(parent_id=parent_id, chunk_text=chunk.page_content, vector=vector)
+            db_chunk = DataChunks(
+                parent_id=parent_id, chunk_text=chunk.page_content, vector=vector
+            )
             db.add(db_chunk)
         db.commit()
     except Exception as e:
@@ -240,8 +257,8 @@ def generate_response(llm_client, contexts, query, config):
             model=config["llm"]["model"],
             messages=[
                 {"role": "system", "content": config["llm"]["system_prompt"]},
-                {"role": config["llm"]["role"], "content": prompt}
-                ],
+                {"role": config["llm"]["role"], "content": prompt},
+            ],
             temperature=config["llm"]["temperature"],
             top_p=config["llm"]["top_p"],
             max_tokens=config["llm"]["max_tokens"],
@@ -281,8 +298,8 @@ def rewrite_query(llm_client, query, config):
             model=config["llm_rewriter"]["model"],
             messages=[
                 {"role": "system", "content": config["llm_rewriter"]["system_prompt"]},
-                {"role": config["llm_rewriter"]["role"], "content": query}
-                ],
+                {"role": config["llm_rewriter"]["role"], "content": query},
+            ],
             temperature=config["llm_rewriter"]["temperature"],
             top_p=config["llm_rewriter"]["top_p"],
             max_tokens=config["llm_rewriter"]["max_tokens"],
@@ -318,7 +335,10 @@ def process_request(config, llm_client, query):
 
     except Exception as e:
         logger.error(f"Failed to process request: {e}")
-        return "An error occurred while processing your request. Please try again later."
+        return (
+            "An error occurred while processing your request. Please try again later."
+        )
+
 
 # Apply average pooling to model's hidden states
 def average_pool(last_hidden_states, attention_mask):
