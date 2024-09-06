@@ -13,6 +13,9 @@ clean:
 clean-docker:
 	docker compose down --rmi all --volumes --remove-orphans
 
+clean-volume:
+	docker volume rm spicyrag_postgres_data
+
 fmt:
 	sh -c "ruff format ."
 
