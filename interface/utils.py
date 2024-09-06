@@ -163,7 +163,7 @@ def load_and_process_text_documents(db, model, config):
 
         vectors = vectorize([c[1] for c in chunks_lists], model)
 
-        for chunk_collection, vector in zip(chunks_lists, vectors):
+        for chunk_collection, vector in zip(chunks_lists, vectors, strict=True):
             doc_id = chunk_collection[0]
             chunk = chunk_collection[1]
 
