@@ -63,7 +63,7 @@ embedding_model:
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
-  text_file: "./data/hmao_npa.txt"
+  text_file: "./data/npa_summurize.txt"
   text_separator: "\n\n\n"
 
 data_processing:
