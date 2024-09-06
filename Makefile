@@ -10,6 +10,9 @@ tests:
 clean:
 	rm -rf __pycache__ .pytest_cache
 
+clean-docker:
+	docker compose down --rmi all --volumes --remove-orphans
+
 fmt:
 	sh -c "ruff format ."
 
