@@ -1,5 +1,5 @@
 run:
-	docker compose up
+	docker compose up --no-recreate
 
 start:
 	docker compose up -d
