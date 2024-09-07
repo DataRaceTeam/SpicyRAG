@@ -16,9 +16,9 @@ server:
   port: 8000
 
 llm:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
-  model: "meta/llama-3.1-405b-instruct"
+  base_url: "https://integrate.api.nvidia.com/v1"
+  api_key: "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"
+  model: "google/gemma-2-27b-it"
   role: "user"
   system_prompt: |
     Вы являетесь виртуальным юридическим консультантом, специализирующимся на анализе и интерпретации юридических документов и правовых норм.
@@ -33,12 +33,12 @@ llm:
     ВАЖНО: не упоминай, что ты работаешь с контекстом! Отвечай структурно и по пунктам.
   temperature: 0.15
   top_p: 0.7
-  max_tokens: 10000
+  max_tokens: 4096
 
 llm_rewriter:
-  base_url: "${LLM_REWRITER_BASE_URL}"
-  api_key: "${LLM_REWRITER_API_KEY}"
-  model: "meta/llama-3.1-8b-instruct"
+  base_url: "https://integrate.api.nvidia.com/v1"
+  api_key: "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"
+  model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
     Вы - полезный помощник, который генерирует несколько поисковых запросов на основе одного входного запроса.
@@ -62,8 +62,8 @@ data_processing:
   chunker:
     py_class: interface.chunker.RecursiveCharacterTextSplitterChunker
     kwargs:
-      chunk_size: 2048
-      chunk_overlap: 128
+      chunk_size: 512
+      chunk_overlap: 64
       separators:
         - '\n#{1,6} '
         - '```\n'

@@ -233,10 +233,10 @@ def generate_response(llm_client, contexts, query, config):
     """
     try:
         prompt = build_prompt(contexts, query)
+        logger.info(f"Generating response: {prompt}")
         response = llm_client.chat.completions.create(
             model=config["llm"]["model"],
             messages=[
-                {"role": "system", "content": config["llm"]["system_prompt"]},
                 {"role": config["llm"]["role"], "content": prompt},
             ],
             temperature=config["llm"]["temperature"],
@@ -303,11 +303,14 @@ def process_request(config, llm_client, query):
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
+        logger.info(f"Processing query: {query}")
         model = initialize_embedding_model(config)
-        rewrited_query = rewrite_query(llm_client, query, config)
+        logger.info(f"Initialized embedding model...")
+        # rewrited_query = rewrite_query(llm_client, query, config)
         contexts = retrieve_contexts(
-            rewrited_query, model, config
+            query, model, config
         )  # В ретривер отправляется переписанный запрос
+        logger.info(f"Retrieved contexts: {contexts}")
 
         # Generate the response
         llm_response = generate_response(llm_client, contexts, query, config)
