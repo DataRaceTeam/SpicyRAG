@@ -174,7 +174,7 @@ def store_chunks(db, parent_id, chunks, embedder, config) -> None:
         passages = [chunk for chunk in chunks]
         embeddings = embedder.encode(passages, doc_type="document")
 
-        for passage, embedding in zip(passages, embeddings):
+        for passage, embedding in zip(passages, embeddings, strict=True):
             db_chunk = DataChunks(parent_id=parent_id, chunk_text=passage, vector=embedding)
             db.add(db_chunk)
         db.commit()
