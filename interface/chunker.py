@@ -55,6 +55,14 @@ class AddHeaderTransformChunk(AbstractTransformChunk):
     """Add header from document to chunk"""
 
     def transform(self, chunks: list[str], text: str) -> list[str]:
-        header = text[: [i for i in range(len(text)) if text[i] == '"'][1] + 1]
+        end = [i for i in range(len(text)-2) if text[i] == '"']
+        if len(end) > 1:
+            idx = end[1]
+            
+            if idx > 1024:
+                return chunks
+            
+            header = text[: idx + 1]
 
-        return [header + c for c in chunks]
+            return [header + c for c in chunks]
+        return chunks

@@ -40,6 +40,7 @@ class TfidfFilterTextTransformation(BaseTextTransformation):
         ]
         less_significant_words = words.index.tolist()
         self.pattern = r"\b({})".format("|".join(less_significant_words))
+        print("Created pattern for TfidfFilterTextTransformation: {}".format(self.pattern))
 
     def transform(self, text: str) -> str:
         return re.sub(self.pattern, "", text, flags=re.IGNORECASE).strip()
