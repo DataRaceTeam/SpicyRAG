@@ -18,6 +18,16 @@ services:
                apt-get install -y postgresql-15-pgvector &&
                docker-entrypoint.sh postgres"
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
   interface:
     build: .
     command: >
@@ -45,3 +55,4 @@ services:
 
 volumes:
   postgres_data:
+  es_data:
