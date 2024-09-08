@@ -16,8 +16,8 @@ server:
   port: 8000
 
 llm:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
+  base_url:
+  api_key:
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
@@ -30,14 +30,14 @@ llm:
       2. Используй релевантные фрагменты контекста (не пиши к чему обращаешься, не упоминай пунктов) для создания полного и юридически обоснованного ответа. Приводи цитаты из контекста в соответствии
       3. После ответа напиши вывод о написанной тобой информации, начиная со слова Таким образом
 
-    ВАЖНО: не упоминай, что ты работаешь с контекстом! Отвечай структурно и по пунктам.
+    ВАЖНО: не упоминай, что ты работаешь с контекстом! Отвечай структурно и по пунктам. Обязательно отвечай на русском языке!
   temperature: 0.15
   top_p: 0.7
   max_tokens: 4096
 
 llm_rewriter:
-  base_url: "${LLM_REWRITER_BASE_URL}"
-  api_key: "${LLM_REWRITER_API_KEY}"
+  base_url:
+  api_key:
   model: "meta/llama-3.1-8b-instruct"
   role: "user"
   system_prompt: |
@@ -60,21 +60,8 @@ data_sources:
 
 data_processing:
   chunker:
-    py_class: interface.chunker.RecursiveCharacterTextSplitterChunker
+    py_class: interface.chunker.SemanticTextChunker
     kwargs:
-      chunk_size: 2048
-      chunk_overlap: 256
-      separators:
-        - '\n#{1,6} '
-        - '```\n'
-        - '\n\\*\\*\\*+\n'
-        - '\n---+\n'
-        - '\n___+\n'
-        - '\n\n'
-        - '\n'
-        - ' '
-        - ''
-        - ','
-        - '|'
+      number_of_chunks: 16
   top_k: 3
   similarity_threshold: 0.7

@@ -18,7 +18,7 @@ services:
                apt-get install -y postgresql-15-pgvector &&
                docker-entrypoint.sh postgres"
 
-  interface:
+  interface_default:
     build: .
     command: >
       sh -c "
@@ -28,20 +28,13 @@ services:
       done &&
       uvicorn interface.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
-      - "8000:8000"
+      - "8002:8000"
+    environment:
+      - OPENAI_API_KEY=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
     depends_on:
       - db
     volumes:
       - ./interface:/app/interface
-
-  streamlit:
-    build: .
-    command: >
-      streamlit run streamlit/app.py --server.port=8501 --server.address=0.0.0.0
-    ports:
-      - "8501:8501"
-    depends_on:
-      - interface
 
 volumes:
   postgres_data:
