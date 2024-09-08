@@ -272,7 +272,7 @@ def rewrite_query(llm_client, query, config):
             model=config["llm_rewriter"]["model"],
             messages=[
                 {"role": "system", "content": config["llm_rewriter"]["system_prompt"]},
-                {"role": config["llm_rewriter"]["role"], "content": query},
+                {"role": config["llm_rewriter"]["role"], "content": f"Перефразируй: {query}"},
             ],
             temperature=config["llm_rewriter"]["temperature"],
             top_p=config["llm_rewriter"]["top_p"],
@@ -285,7 +285,7 @@ def rewrite_query(llm_client, query, config):
             if chunk.choices[0].delta.content is not None:
                 rewrited_query += chunk.choices[0].delta.content
 
-        logger.info(f"Rewrited query: {rewrited_query[:30]}...")
+        logger.info(f"Rewrited query: {rewrited_query}")
         return rewrited_query
     except Exception as e:
         logger.error(f"Error rewriting query: {e}")
