@@ -1,16 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
 
-import yaml
+import envyaml
 from fastapi import FastAPI
 
 from interface import models, schemas, utils
 from interface.database import engine
 
 # Load configuration
-config_path = "interface/config.yaml"
-with open(config_path, "r") as file:
-    config = yaml.safe_load(file)
+config = envyaml.EnvYAML("interface/config.yaml")
 
 # Initialize logger
 logging.basicConfig(level=logging.getLevelName(config["logging"]["level"]))
