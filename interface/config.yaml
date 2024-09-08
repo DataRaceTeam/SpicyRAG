@@ -16,8 +16,8 @@ server:
   port: 8000
 
 llm:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_REWRITER_BASE_URL}"
+  api_key: "${LLM_REWRITER_API_KEY}"
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
@@ -63,8 +63,9 @@ embedding_model:
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
-  text_file: "./data/npa_summurize.txt"
-  text_separator: "\n\n\n"
+  text_file: "./data/hmao_npa.txt"
+  summ_file: "./data/npa_summarized.txt"
+  text_separator: "\n\n"
 
 data_processing:
   chunker:
