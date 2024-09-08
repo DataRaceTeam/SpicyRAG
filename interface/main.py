@@ -20,7 +20,7 @@ logger = logging.getLogger(config["project"]["name"])
 models.Base.metadata.create_all(bind=engine)
 
 # Initialize models and LLM client
-local_embedding_model = utils.initialize_embedding_model(config)
+local_embedder = utils.initialize_embedding_model(config)
 llm_client = utils.initialize_llm_client(config)
 
 
@@ -28,7 +28,7 @@ llm_client = utils.initialize_llm_client(config)
 async def lifespan(app: FastAPI):
     try:
         logger.info("Starting data loading process.")
-        utils.load_data(local_embedding_model, config)  # Pass config to load_data
+        utils.load_data(local_embedder, config)  # Pass config to load_data
         logger.info("Data loading completed.")
     except Exception as e:
         logger.warning(f"Service starts without any data in the DB caused by: {e}")

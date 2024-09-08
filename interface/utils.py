@@ -5,11 +5,12 @@ import pandas as pd
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from openai import OpenAI
-from sentence_transformers import SentenceTransformer
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
 from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
+from interface.embedder import Embedder
+from interface.schemas import EmbedderSettings
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +30,16 @@ def initialize_llm_client(config):
         raise
 
 
-def initialize_embedding_model(config):
+def initialize_embedding_model(config: dict) -> Embedder:
     """
     Initializes and returns the embedding model using provided configuration.
     """
     try:
-        model = SentenceTransformer(config["embedding_model"]["name"])
-        logger.info(f"Initialized embedding model {config['embedding_model']['name']}")
-        return model
+        settings = EmbedderSettings(**config["embedding_model"])
+        logger.info(f"Loaded embedder settings for model {settings.model_name}")
+        embedder = Embedder(settings)
+        logger.info(f"Initialized embedding model {settings.model_type}, {settings.model_name}")
+        return embedder
     except Exception as e:
         logger.error(f"Failed to initialize embedding model: {e}")
         raise
@@ -56,7 +59,7 @@ def chunker(text, max_length, chunk_overlap=256):
     return text_splitter.split_documents([Document(text)])
 
 
-def load_data(model, config):
+def load_data(embedder, config):
     """
     Loads and processes data into the database by chunking text and vectorizing it.
     Only loads data into a table if the table is empty.
@@ -83,7 +86,7 @@ def load_data(model, config):
             logger.info(
                 "No existing data found in HmaoNpaDataset. Proceeding with data loading and processing for this table."
             )
-            load_and_process_text_documents(db, model, config)
+            load_and_process_text_documents(db, embedder, config)
 
         logger.info("Data loading process completed successfully.")
     except Exception as e:
@@ -118,7 +121,7 @@ def load_excel_data(db, config):
         raise
 
 
-def load_and_process_text_documents(db, model, config):
+def load_and_process_text_documents(db, embedder, config):
     """
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
@@ -126,6 +129,7 @@ def load_and_process_text_documents(db, model, config):
     chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
     chunker: AbstractBaseChunker = chunker_cls(**config["data_processing"]["chunker"]["kwargs"])
 
+    logger.info("Successfully initialized chunker")
     text_transformers = [
         c["py_class"](**c.get("kwargs"))
         for c in config["data_processing"].get("text_transformers", [])
@@ -141,6 +145,7 @@ def load_and_process_text_documents(db, model, config):
         with open(file_path, "r", encoding="utf-8") as file:
             content = file.read().split(separator)
 
+        logger.info("Started vectorizing the NPA data and store it in database")
         for document in content:
             hmao_entry = HmaoNpaDataset(document_text=document.strip())
             db.add(hmao_entry)
@@ -154,21 +159,23 @@ def load_and_process_text_documents(db, model, config):
             for transformer in chunk_transformers:
                 chunks = transformer.transform(chunks)
 
-            store_chunks(db, hmao_entry.id, chunks, model, config)
+            store_chunks(db, hmao_entry.id, chunks, embedder, config)
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
         raise
 
 
-def store_chunks(db, parent_id, chunks, model, config):
+def store_chunks(db, parent_id, chunks, embedder, config) -> None:
     """
     Vectorizes and stores text chunks in the database.
     """
     try:
-        for chunk in chunks:
-            vector = vectorize(chunk, model)
-            db_chunk = DataChunks(parent_id=parent_id, chunk_text=chunk, vector=vector)
+        passages = [chunk for chunk in chunks]
+        embeddings = embedder.encode(passages, doc_type="document")
+
+        for passage, embedding in zip(passages, embeddings):
+            db_chunk = DataChunks(parent_id=parent_id, chunk_text=passage, vector=embedding)
             db.add(db_chunk)
         db.commit()
     except Exception as e:
@@ -176,26 +183,14 @@ def store_chunks(db, parent_id, chunks, model, config):
         raise
 
 
-def vectorize(chunk, model):
-    """
-    Vectorizes a given text chunk using the provided model.
-    """
-    try:
-        vector = model.encode(chunk)
-        return vector.tolist()
-    except Exception as e:
-        logger.error(f"Failed to vectorize chunk: {e}")
-        raise
-
-
-def retrieve_contexts(query, model, config):
+def retrieve_contexts(query, embedder, config):
     """
     Retrieves the most relevant contexts from DataChunks for a given query using vector search.
     """
     db = SessionLocal()
     try:
         # Encode the query to get its vector
-        query_vector = model.encode(query).tolist()
+        query_vector = embedder.encode([query]).tolist()
 
         # Define parameters
         k = config["data_processing"]["top_k"]
@@ -303,10 +298,10 @@ def process_request(config, llm_client, query):
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
-        model = initialize_embedding_model(config)
+        embedder = initialize_embedding_model(config)
         rewrited_query = rewrite_query(llm_client, query, config)
         contexts = retrieve_contexts(
-            rewrited_query, model, config
+            rewrited_query, embedder, config
         )  # В ретривер отправляется переписанный запрос
 
         # Generate the response
