@@ -8,8 +8,8 @@ from openai import OpenAI
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
-from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
 from interface.embedder import Embedder
+from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
 from interface.schemas import EmbedderSettings
 
 logger = logging.getLogger(__name__)
