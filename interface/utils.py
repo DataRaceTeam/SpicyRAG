@@ -1,4 +1,5 @@
 import logging
+import traceback
 from pydoc import locate
 
 import pandas as pd
@@ -83,6 +84,7 @@ def load_data(model, config):
             logger.info(
                 "No existing data found in HmaoNpaDataset. Proceeding with data loading and processing for this table."
             )
+            logger.info("SMTH")
             load_and_process_text_documents(db, model, config)
 
         logger.info("Data loading process completed successfully.")
@@ -123,18 +125,21 @@ def load_and_process_text_documents(db, model, config):
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
 
+    logger.info("smth2")
     chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
     chunker: AbstractBaseChunker = chunker_cls(**config["data_processing"]["chunker"]["kwargs"])
 
+    logger.info("smth3")
     text_transformers = [
-        c["py_class"](**c.get("kwargs"))
-        for c in config["data_processing"].get("text_transformers", [])
+        locate(c["py_class"])(**c.get("kwargs", {}))
+        for c in config["data_processing"].get("text_transformers", {}).values()
     ]
     chunk_transformers = [
-        c["py_class"](**c.get("kwargs"))
-        for c in config["data_processing"].get("chunk_transformers", [])
+        locate(c["py_class"])(**c.get("kwargs", {}))
+        for c in config["data_processing"].get("chunk_transformers", {}).values()
     ]
-
+    logger.info("smth4")
+    
     try:
         file_path = config["data_sources"]["text_file"]
         separator = config["data_sources"]["text_separator"]
@@ -152,12 +157,13 @@ def load_and_process_text_documents(db, model, config):
 
             chunks = chunker.chunk(text)
             for transformer in chunk_transformers:
-                chunks = transformer.transform(chunks)
+                chunks = transformer.transform(chunks, text)
 
             store_chunks(db, hmao_entry.id, chunks, model, config)
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
+        traceback.print_exc()
         raise
 
 

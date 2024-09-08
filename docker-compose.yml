@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
       POSTGRES_DB: ${DB_NAME:-spicyragdb}
     ports:
-      - "5434:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./data:/docker-entrypoint-initdb.d
@@ -18,7 +18,7 @@ services:
                apt-get install -y postgresql-15-pgvector &&
                docker-entrypoint.sh postgres"
 
-  interface:
+  interface_header:
     build: .
     command: >
       sh -c "
@@ -28,20 +28,11 @@ services:
       done &&
       uvicorn interface.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
       - db
     volumes:
       - ./interface:/app/interface
-
-  streamlit:
-    build: .
-    command: >
-      streamlit run streamlit/app.py --server.port=8501 --server.address=0.0.0.0
-    ports:
-      - "8501:8501"
-    depends_on:
-      - interface
 
 volumes:
   postgres_data:
