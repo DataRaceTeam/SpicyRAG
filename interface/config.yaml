@@ -50,8 +50,12 @@ llm_rewriter:
   max_tokens: 1024
 
 embedding_model:
-  name: "paraphrase-MiniLM-L6-v2"
+  batch_size: 16
+  model_name: "d0rj/e5-small-en-ru"
+  model_type: "e5"
   dimension: 384
+  prefix_query: "query: {}"
+  prefix_document: "passage: {}"
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
