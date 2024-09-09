@@ -171,10 +171,9 @@ def store_chunks(db, parent_id, chunks, embedder, config) -> None:
     Vectorizes and stores text chunks in the database.
     """
     try:
-        passages = [chunk for chunk in chunks]
-        embeddings = embedder.encode(passages, doc_type="document")
+        embeddings = embedder.encode(chunks, doc_type="document")
 
-        for passage, embedding in zip(passages, embeddings, strict=True):
+        for passage, embedding in zip(chunks, embeddings, strict=True):
             db_chunk = DataChunks(parent_id=parent_id, chunk_text=passage, vector=embedding)
             db.add(db_chunk)
         db.commit()
@@ -190,7 +189,7 @@ def retrieve_contexts(query, embedder, config):
     db = SessionLocal()
     try:
         # Encode the query to get its vector
-        query_vector = embedder.encode([query]).tolist()
+        query_vector = embedder.encode([query], doc_type="query")[0].tolist()
 
         # Define parameters
         k = config["data_processing"]["top_k"]

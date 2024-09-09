@@ -51,11 +51,11 @@ llm_rewriter:
 
 embedding_model:
   batch_size: 16
-  model_name: "d0rj/e5-small-en-ru"
-  model_type: "e5"
+  model_name: "sentence-transformers/paraphrase-MiniLM-L6-v2"
+  model_type: ""
   dimension: 384
-  prefix_query: "query: {}"
-  prefix_document: "passage: {}"
+  prefix_query: "{}"
+  prefix_document: "{}"
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
