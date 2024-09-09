@@ -52,8 +52,9 @@ def ask_question(question: schemas.QuestionCreate):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app,
-                host=config["server"]["host"],
-                port=config["server"]["port"],
-                reload=True,
-                )
+    uvicorn.run(
+        app,
+        host=config["server"]["host"],
+        port=config["server"]["port"],
+        reload=True,
+    )
