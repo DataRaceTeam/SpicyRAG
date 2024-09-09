@@ -189,7 +189,7 @@ def retrieve_contexts(query, embedder, config):
     db = SessionLocal()
     try:
         # Encode the query to get its vector
-        query_vector = embedder.encode([query]).tolist()
+        query_vector = embedder.encode([query], doc_type="query")[0].tolist()
 
         # Define parameters
         k = config["data_processing"]["top_k"]
