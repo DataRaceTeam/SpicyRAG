@@ -145,7 +145,7 @@ def load_and_process_text_documents(db, embedder, config):
         separator = config["data_sources"]["text_separator"]
 
         with open(file_path, "r", encoding="utf-8") as npa, open(summ_path, "r", encoding="utf-8") as npa_summ:
-            content = (npa.read() + npa_summ.read()).split(separator)
+            content = npa.read().split(separator)
 
         logger.info("Started vectorizing the NPA data and store it in database")
         for document in content:
@@ -271,14 +271,14 @@ def rewrite_query(llm_client, query, config):
     """
     try:
         response = llm_client.chat.completions.create(
-            model=config["llm_rewriter"]["model"],
+            model=config["llm_respond"]["model"],
             messages=[
-                {"role": "system", "content": config["llm_rewriter"]["system_prompt"]},
-                {"role": config["llm_rewriter"]["role"], "content": f"Перефразируй: {query}"},
+                {"role": "system", "content": config["llm_respond"]["system_prompt"]},
+                {"role": config["llm_respond"]["role"], "content": f"Вопрос: {query}"},
             ],
-            temperature=config["llm_rewriter"]["temperature"],
-            top_p=config["llm_rewriter"]["top_p"],
-            max_tokens=config["llm_rewriter"]["max_tokens"],
+            temperature=config["llm_respond"]["temperature"],
+            top_p=config["llm_respond"]["top_p"],
+            max_tokens=config["llm_respond"]["max_tokens"],
             stream=True,
         )
 
@@ -288,7 +288,7 @@ def rewrite_query(llm_client, query, config):
                 rewrited_query += chunk.choices[0].delta.content
 
         logger.info(f"Rewrited query: {rewrited_query}")
-        return rewrited_query
+        return f'{rewrited_query}\n---------------\n{query}'
     except Exception as e:
         logger.error(f"Error rewriting query: {e}")
         raise
