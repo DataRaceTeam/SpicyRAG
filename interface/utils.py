@@ -200,10 +200,10 @@ def retrieve_contexts(query: str, embedder: Embedder, config: Dict) -> List[str]
         results = (
             db.query(
                 DataChunks,
-                DataChunks.vector.inner_product(query_vector).label("distance"),
+                DataChunks.vector.cosine_distance(query_vector).label("distance"),
             )
             .filter(
-                DataChunks.vector.inner_product(query_vector) < similarity_threshold
+                DataChunks.vector.cosine_distance(query_vector) < similarity_threshold
             )
             .order_by("distance")
             .limit(k)
