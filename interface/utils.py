@@ -1,5 +1,6 @@
 import logging
 from pydoc import locate
+from typing import Union, Dict, List
 
 import pandas as pd
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -15,7 +16,7 @@ from interface.schemas import EmbedderSettings
 logger = logging.getLogger(__name__)
 
 
-def initialize_llm_client(config):
+def initialize_llm_client(config: Dict) -> OpenAI:
     """
     Initializes and returns the LLM client using provided configuration.
     """
@@ -30,7 +31,7 @@ def initialize_llm_client(config):
         raise
 
 
-def initialize_embedding_model(config: dict) -> Embedder:
+def initialize_embedding_model(config: Dict) -> Embedder:
     """
     Initializes and returns the embedding model using provided configuration.
     """
@@ -45,7 +46,7 @@ def initialize_embedding_model(config: dict) -> Embedder:
         raise
 
 
-def chunker(text, max_length, chunk_overlap=256):
+def chunker(text: str, max_length: int, chunk_overlap: int = 256):
     """
     Splits the given text into smaller chunks with an optional overlap.
     """
@@ -59,7 +60,7 @@ def chunker(text, max_length, chunk_overlap=256):
     return text_splitter.split_documents([Document(text)])
 
 
-def load_data(embedder, config):
+def load_data(embedder: Embedder, config: Dict) -> None:
     """
     Loads and processes data into the database by chunking text and vectorizing it.
     Only loads data into a table if the table is empty.
@@ -97,7 +98,7 @@ def load_data(embedder, config):
         db.close()
 
 
-def load_excel_data(db, config):
+def load_excel_data(db, config: Dict) -> None:
     """
     Loads data from an Excel file into the database.
     """
@@ -121,7 +122,7 @@ def load_excel_data(db, config):
         raise
 
 
-def load_and_process_text_documents(db, embedder, config):
+def load_and_process_text_documents(db, embedder: Embedder, config: Dict) -> None:
     """
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
@@ -182,7 +183,7 @@ def store_chunks(db, parent_id, chunks, embedder, config) -> None:
         raise
 
 
-def retrieve_contexts(query, embedder, config):
+def retrieve_contexts(query: str, embedder: Embedder, config: Dict) -> List[str]:
     """
     Retrieves the most relevant contexts from DataChunks for a given query using vector search.
     """
@@ -199,10 +200,10 @@ def retrieve_contexts(query, embedder, config):
         results = (
             db.query(
                 DataChunks,
-                DataChunks.vector.cosine_distance(query_vector).label("distance"),
+                DataChunks.vector.inner_product(query_vector).label("distance"),
             )
             .filter(
-                DataChunks.vector.cosine_distance(query_vector) < similarity_threshold
+                DataChunks.vector.inner_product(query_vector) < similarity_threshold
             )
             .order_by("distance")
             .limit(k)
@@ -251,7 +252,7 @@ def generate_response(llm_client, contexts, query, config):
         raise
 
 
-def build_prompt(contexts, query):
+def build_prompt(contexts: List[str], query: str) -> str:
     """
     Constructs the prompt for the LLM based on the given contexts and query.
     """
@@ -263,7 +264,7 @@ def build_prompt(contexts, query):
     return prompt
 
 
-def rewrite_query(llm_client, query, config):
+def rewrite_query(llm_client: OpenAI, query: str, config: Dict) -> str:
     """
     Rewrites user's query using LLM_rewriter
     """
@@ -292,12 +293,11 @@ def rewrite_query(llm_client, query, config):
         raise
 
 
-def process_request(config, llm_client, query):
+def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query: str) -> Union[dict, str]:
     """
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
-        embedder = initialize_embedding_model(config)
         rewrited_query = rewrite_query(llm_client, query, config)
         contexts = retrieve_contexts(
             rewrited_query, embedder, config
