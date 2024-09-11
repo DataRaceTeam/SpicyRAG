@@ -155,7 +155,7 @@ def load_and_process_text_documents(db, embedder: Embedder, es: Elasticsearch, c
 
         create_index(index_name="chunks", es_client=es)
         logger.info("Started vectorizing the NPA data and store it in database")
-        for document in content:
+        for document in tqdm(content):
             text = document.strip()
 
             date = extract_date(text)
