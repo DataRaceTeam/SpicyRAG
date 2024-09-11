@@ -2,6 +2,8 @@ import logging
 from pydoc import locate
 from typing import Union, Dict, List
 
+from tqdm import tqdm
+
 import pandas as pd
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
@@ -143,11 +145,12 @@ def load_and_process_text_documents(db, embedder: Embedder, config: Dict) -> Non
     try:
         file_path = config["data_sources"]["text_file"]
         separator = config["data_sources"]["text_separator"]
-        with open(file_path, "r", encoding="utf-8") as file:
-            content = file.read().split(separator)
+
+        with open(file_path, "r", encoding="utf-8") as npa:
+            content = npa.read().split(separator)
 
         logger.info("Started vectorizing the NPA data and store it in database")
-        for document in content:
+        for document in tqdm(content):
             hmao_entry = HmaoNpaDataset(document_text=document.strip())
             db.add(hmao_entry)
             db.commit()
@@ -260,34 +263,35 @@ def build_prompt(contexts: List[str], query: str) -> str:
     prompt = "Отвечай используя контекст:\n"
     for i, context in enumerate(contexts):
         prompt += f"Контекст {i + 1}: {context}\n"
-    prompt += f"Вопрос: {query}\nAnswer:"
+    prompt += f"Вопрос: {query}\nНе упоминай, что ты пользуешься контекстом\nПодробный Ответ: "
     return prompt
 
 
-def rewrite_query(llm_client: OpenAI, query: str, config: Dict) -> str:
+def answer_query(llm_client, query, config):
     """
-    Rewrites user's query using LLM_rewriter
+    Answers user's query using LLM_rewriter
     """
     try:
         response = llm_client.chat.completions.create(
-            model=config["llm_rewriter"]["model"],
+            model=config["llm_respond"]["model"],
             messages=[
-                {"role": "system", "content": config["llm_rewriter"]["system_prompt"]},
-                {"role": config["llm_rewriter"]["role"], "content": query},
+                {"role": "system", "content": config["llm_respond"]["system_prompt"]},
+                {"role": config["llm_respond"]["role"], "content": f"Вопрос: {query}"},
             ],
-            temperature=config["llm_rewriter"]["temperature"],
-            top_p=config["llm_rewriter"]["top_p"],
-            max_tokens=config["llm_rewriter"]["max_tokens"],
+            temperature=config["llm_respond"]["temperature"],
+            top_p=config["llm_respond"]["top_p"],
+            max_tokens=config["llm_respond"]["max_tokens"],
             stream=True,
         )
 
-        rewrited_query = ""
+        answered_query = ""
         for chunk in response:
             if chunk.choices[0].delta.content is not None:
-                rewrited_query += chunk.choices[0].delta.content
-
-        logger.info(f"Rewrited query: {rewrited_query[:30]}...")
-        return rewrited_query
+                answered_query += chunk.choices[0].delta.content
+        
+        answered_query += f'\n------------------\n{query}'
+        logger.info(f"Answered query: {answered_query}")
+        return answered_query
     except Exception as e:
         logger.error(f"Error rewriting query: {e}")
         raise
@@ -298,9 +302,10 @@ def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query:
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
-        rewrited_query = rewrite_query(llm_client, query, config)
+        embedder = initialize_embedding_model(config)
+        answered_query = answer_query(llm_client, query, config)
         contexts = retrieve_contexts(
-            rewrited_query, embedder, config
+            answered_query, embedder, config
         )  # В ретривер отправляется переписанный запрос
 
         # Generate the response

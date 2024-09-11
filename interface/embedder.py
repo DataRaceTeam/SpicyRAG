@@ -1,6 +1,7 @@
 import abc
 from typing import Union, List
 
+from tqdm import tqdm
 import more_itertools
 import numpy as np
 import torch
@@ -47,7 +48,7 @@ class Embedder(IEmbedder):
         sentences = self.preprocess_sentences(sentences, doc_type)
         embeddings = torch.tensor([]).to(self.device)
 
-        for batch in more_itertools.chunked(sentences, self.batch_size):
+        for batch in tqdm(more_itertools.chunked(sentences, self.batch_size)):
             tokenized_batch = self.tokenizer(batch, max_length=512, padding=True,
                                              truncation=True, return_tensors='pt').to(self.device)
 
