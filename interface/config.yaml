@@ -16,8 +16,8 @@ server:
   port: 8000
 
 llm:
-  base_url: "${LLM_REWRITER_BASE_URL}"
-  api_key: "${LLM_REWRITER_API_KEY}"
+  base_url: "${LLM_BASE_URL}"
+  api_key: "${LLM_BASE_API_KEY}"
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
