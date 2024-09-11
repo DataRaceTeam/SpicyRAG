@@ -17,7 +17,7 @@ server:
 
 llm:
   base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_BASE_API_KEY}"
+  api_key: "${LLM_API_KEY}"
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
@@ -39,7 +39,7 @@ llm:
 
 llm_respond:
   base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_BASE_API_KEY}"
+  api_key: "${LLM_API_KEY}"
   model: "meta/llama-3.1-70b-instruct"
   role: "user"
   system_prompt: |
