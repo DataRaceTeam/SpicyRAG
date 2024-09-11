@@ -1,10 +1,12 @@
 import logging
 from pydoc import locate
+from datetime import datetime
 from typing import Union, Dict, List
 
 from tqdm import tqdm
 
 import pandas as pd
+from elasticsearch import Elasticsearch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from openai import OpenAI
@@ -14,6 +16,8 @@ from interface.database import SessionLocal
 from interface.embedder import Embedder
 from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
 from interface.schemas import EmbedderSettings
+from interface.text_features import extract_date, extract_npa_number
+from interface.elastic import update_search, create_index, search
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +66,7 @@ def chunker(text: str, max_length: int, chunk_overlap: int = 256):
     return text_splitter.split_documents([Document(text)])
 
 
-def load_data(embedder: Embedder, config: Dict) -> None:
+def load_data(embedder: Embedder, es_client: Elasticsearch, config: Dict) -> None:
     """
     Loads and processes data into the database by chunking text and vectorizing it.
     Only loads data into a table if the table is empty.
@@ -89,7 +93,7 @@ def load_data(embedder: Embedder, config: Dict) -> None:
             logger.info(
                 "No existing data found in HmaoNpaDataset. Proceeding with data loading and processing for this table."
             )
-            load_and_process_text_documents(db, embedder, config)
+            load_and_process_text_documents(db, embedder, es_client, config)
 
         logger.info("Data loading process completed successfully.")
     except Exception as e:
@@ -124,7 +128,7 @@ def load_excel_data(db, config: Dict) -> None:
         raise
 
 
-def load_and_process_text_documents(db, embedder: Embedder, config: Dict) -> None:
+def load_and_process_text_documents(db, embedder: Embedder, es: Elasticsearch, config: Dict) -> None:
     """
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
@@ -149,10 +153,19 @@ def load_and_process_text_documents(db, embedder: Embedder, config: Dict) -> Non
         with open(file_path, "r", encoding="utf-8") as npa:
             content = npa.read().split(separator)
 
+        create_index(index_name="chunks", es_client=es)
         logger.info("Started vectorizing the NPA data and store it in database")
-        for document in tqdm(content):
-            hmao_entry = HmaoNpaDataset(document_text=document.strip())
-            db.add(hmao_entry)
+        for i, document in enumerate(content):
+            if i % 20 == 0:
+                logger.info(f"Finished [{i}/{len(content)}] document")
+            text = document.strip()
+
+            date = extract_date(text)
+            npa_number = extract_npa_number(text)
+
+            doc = HmaoNpaDataset(dt=datetime.strptime(date, "%d.%m.%Y"),
+                                 npa_number=npa_number, document_text=text)
+            db.add(doc)
             db.commit()
 
             text = hmao_entry.document_text
@@ -163,14 +176,14 @@ def load_and_process_text_documents(db, embedder: Embedder, config: Dict) -> Non
             for transformer in chunk_transformers:
                 chunks = transformer.transform(chunks)
 
-            store_chunks(db, hmao_entry.id, chunks, embedder, config)
+            store_chunks(db, es, doc, chunks, embedder, config)
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
         raise
 
 
-def store_chunks(db, parent_id, chunks, embedder, config) -> None:
+def store_chunks(db, es: Elasticsearch, doc: HmaoNpaDataset, chunks: List[str], embedder: Embedder, config) -> None:
     """
     Vectorizes and stores text chunks in the database.
     """
@@ -178,46 +191,56 @@ def store_chunks(db, parent_id, chunks, embedder, config) -> None:
         embeddings = embedder.encode(chunks, doc_type="document")
 
         for passage, embedding in zip(chunks, embeddings, strict=True):
-            db_chunk = DataChunks(parent_id=parent_id, chunk_text=passage, vector=embedding)
+            db_chunk = DataChunks(parent_id=doc.id, dt=doc.dt,
+                                  npa_number=doc.npa_number,
+                                  chunk_text=passage,
+                                  vector=embedding)
             db.add(db_chunk)
         db.commit()
+        update_search(doc=doc, chunks=chunks, es_client=es)
     except Exception as e:
         logger.error(f"Error storing chunks in the database: {e}")
         raise
 
 
-def retrieve_contexts(query: str, embedder: Embedder, config: Dict) -> List[str]:
+def retrieve_semantic_search(db, query: str, embedder: Embedder, config: Dict) -> List[str]:
+    query_vector = embedder.encode([query], doc_type="query")[0].tolist()
+
+    # Define parameters
+    k = config["retrieval"]["top_k_vector"]
+    similarity_threshold = config["retrieval"]["similarity_threshold"]
+
+    # Query the database for the most similar contexts based on cosine similarity
+    results = (
+        db.query(
+            DataChunks,
+            DataChunks.vector.cosine_distance(query_vector).label("distance"),
+        )
+        .filter(
+            DataChunks.vector.cosine_distance(query_vector) < similarity_threshold
+        )
+        .order_by("distance")
+        .limit(k)
+        .all()
+    )
+    return [result.DataChunks.chunk_text for result in results]
+
+
+def retrieve_contexts(query: str, embedder: Embedder, config: Dict, es: Elasticsearch) -> List[str]:
     """
     Retrieves the most relevant contexts from DataChunks for a given query using vector search.
     """
     db = SessionLocal()
+    top_chunks = []
     try:
-        # Encode the query to get its vector
-        query_vector = embedder.encode([query], doc_type="query")[0].tolist()
+        if config["retrieval"]["vector_search_enabled"]:
+            top_chunks.extend(retrieve_semantic_search(db, query, embedder, config))
+        if config["retrieval"]["fulltext_search_enabled"]:
+            top_chunks.extend(search(es, config, query))
 
-        # Define parameters
-        k = config["data_processing"]["top_k"]
-        similarity_threshold = config["data_processing"]["similarity_threshold"]
-
-        # Query the database for the most similar contexts based on cosine similarity
-        results = (
-            db.query(
-                DataChunks,
-                DataChunks.vector.cosine_distance(query_vector).label("distance"),
-            )
-            .filter(
-                DataChunks.vector.cosine_distance(query_vector) < similarity_threshold
-            )
-            .order_by("distance")
-            .limit(k)
-            .all()
-        )
-
-        # Extract the chunk_texts from the results
-        top_chunks = [result.DataChunks.chunk_text for result in results]
-
-        logger.info(f"Retrieved top {k} contexts for the query")
-        return top_chunks
+        result = list(set(top_chunks[:config["retrieval"]["top_k"]]))
+        logger.info(f"Retrieved top {len(result)} contexts for the query")
+        return result
     except Exception as e:
         logger.error(f"Error retrieving contexts: {e}")
         raise
@@ -288,7 +311,7 @@ def answer_query(llm_client, query, config):
         for chunk in response:
             if chunk.choices[0].delta.content is not None:
                 answered_query += chunk.choices[0].delta.content
-        
+
         answered_query += f'\n------------------\n{query}'
         logger.info(f"Answered query: {answered_query}")
         return answered_query
@@ -297,7 +320,8 @@ def answer_query(llm_client, query, config):
         raise
 
 
-def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query: str) -> Union[dict, str]:
+def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query: str, es: Elasticsearch) -> Union[
+    dict, str]:
     """
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
@@ -305,7 +329,7 @@ def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query:
         embedder = initialize_embedding_model(config)
         answered_query = answer_query(llm_client, query, config)
         contexts = retrieve_contexts(
-            answered_query, embedder, config
+            answered_query, embedder, config, es
         )  # В ретривер отправляется переписанный запрос
 
         # Generate the response
