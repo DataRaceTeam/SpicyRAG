@@ -145,7 +145,7 @@ def load_and_process_text_documents(db, embedder, config):
         file_path = config["data_sources"]["text_file"]
         separator = config["data_sources"]["text_separator"]
 
-        with open(file_path, "r", encoding="utf-8") as npa, open(summ_path, "r", encoding="utf-8") as npa_summ:
+        with open(file_path, "r", encoding="utf-8") as npa:
             content = npa.read().split(separator)
 
         logger.info("Started vectorizing the NPA data and store it in database")
