@@ -166,7 +166,6 @@ def load_and_process_text_documents(db, embedder: Embedder, es: Elasticsearch, c
             db.add(doc)
             db.commit()
 
-            text = hmao_entry.document_text
             for transformer in text_transformers:
                 text = transformer.transform(text)
 
@@ -324,7 +323,6 @@ def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query:
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
-        embedder = initialize_embedding_model(config)
         answered_query = answer_query(llm_client, query, config)
         contexts = retrieve_contexts(
             answered_query, embedder, config, es
