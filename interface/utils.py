@@ -1,6 +1,8 @@
 import logging
 from pydoc import locate
 
+from tqdm import tqdm
+
 import pandas as pd
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
@@ -148,7 +150,7 @@ def load_and_process_text_documents(db, embedder, config):
             content = npa.read().split(separator)
 
         logger.info("Started vectorizing the NPA data and store it in database")
-        for document in content:
+        for document in tqdm(content):
             hmao_entry = HmaoNpaDataset(document_text=document.strip())
             db.add(hmao_entry)
             db.commit()
@@ -261,7 +263,7 @@ def build_prompt(contexts, query):
     prompt = "Отвечай используя контекст:\n"
     for i, context in enumerate(contexts):
         prompt += f"Контекст {i + 1}: {context}\n"
-    prompt += f"Вопрос: {query}\nAnswer:"
+    prompt += f"Вопрос: {query}\nНе упоминай, что ты пользуешься контекстом\nПодробный Ответ: "
     return prompt
 
 
@@ -286,9 +288,10 @@ def rewrite_query(llm_client, query, config):
         for chunk in response:
             if chunk.choices[0].delta.content is not None:
                 rewrited_query += chunk.choices[0].delta.content
-
+        
+        rewrited_query += f'\n------------------\n{query}'
         logger.info(f"Rewrited query: {rewrited_query}")
-        return f'{rewrited_query}\n---------------\n{query}'
+        return rewrited_query
     except Exception as e:
         logger.error(f"Error rewriting query: {e}")
         raise
