@@ -43,7 +43,7 @@ app = FastAPI(title=config["project"]["name"], lifespan=lifespan)
 @app.post("/ask/")
 def ask_question(question: schemas.QuestionCreate):
     logger.info(f"Received question: {question.question}")
-    response_content = utils.process_request(config, llm_client, question.question)
+    response_content = utils.process_request(config, local_embedder, llm_client, question.question)
 
     logger.info(f"LLM Response: {response_content}")
     return response_content
