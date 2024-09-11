@@ -159,3 +159,4 @@ yarl==1.9.7
 zipp==3.20.1
 more-itertools==10.2.0
 sentencepiece==0.2.0
+elasticsearch==7.9.1

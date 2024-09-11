@@ -58,6 +58,19 @@ embedding_model:
   prefix_query: "{}"
   prefix_document: "{}"
 
+elastic_params:
+  host: "elasticsearch"
+  port: 9200
+  index_name: "chunks"
+
+retrieval:
+  vector_search_enabled: true
+  similarity_threshold: 0.7
+  top_k_vector: 3
+  fulltext_search_enabled: true
+  top_k_fulltext: 3
+  top_k : 5
+
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
   text_file: "./data/hmao_npa.txt"
@@ -81,5 +94,3 @@ data_processing:
         - ''
         - ','
         - '|'
-  top_k: 3
-  similarity_threshold: 0.7
