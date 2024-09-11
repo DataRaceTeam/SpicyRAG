@@ -51,10 +51,10 @@ llm_respond:
   max_tokens: 1024
 
 embedding_model:
-  batch_size: 32
-  model_name: "deepvk/USER-base"
+  batch_size: 16
+  model_name: "sentence-transformers/paraphrase-MiniLM-L6-v2"
   model_type: ""
-  dimension: 768
+  dimension: 384
   prefix_query: "{}"
   prefix_document: "{}"
 

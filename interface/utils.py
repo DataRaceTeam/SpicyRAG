@@ -267,9 +267,9 @@ def build_prompt(contexts, query):
     return prompt
 
 
-def rewrite_query(llm_client, query, config):
+def answer_query(llm_client, query, config):
     """
-    Rewrites user's query using LLM_rewriter
+    Answers user's query using LLM_rewriter
     """
     try:
         response = llm_client.chat.completions.create(
@@ -284,14 +284,14 @@ def rewrite_query(llm_client, query, config):
             stream=True,
         )
 
-        rewrited_query = ""
+        answered_query = ""
         for chunk in response:
             if chunk.choices[0].delta.content is not None:
-                rewrited_query += chunk.choices[0].delta.content
+                answered_query += chunk.choices[0].delta.content
         
-        rewrited_query += f'\n------------------\n{query}'
-        logger.info(f"Rewrited query: {rewrited_query}")
-        return rewrited_query
+        answered_query += f'\n------------------\n{query}'
+        logger.info(f"Answered query: {answered_query}")
+        return answered_query
     except Exception as e:
         logger.error(f"Error rewriting query: {e}")
         raise
@@ -303,9 +303,9 @@ def process_request(config, llm_client, query):
     """
     try:
         embedder = initialize_embedding_model(config)
-        rewrited_query = rewrite_query(llm_client, query, config)
+        answered_query = answer_query(llm_client, query, config)
         contexts = retrieve_contexts(
-            rewrited_query, embedder, config
+            answered_query, embedder, config
         )  # В ретривер отправляется переписанный запрос
 
         # Generate the response
