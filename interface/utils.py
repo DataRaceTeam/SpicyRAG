@@ -1,3 +1,4 @@
+import os
 import logging
 from pydoc import locate
 from datetime import datetime
@@ -5,6 +6,7 @@ from typing import Union, Dict, List
 
 from tqdm import tqdm
 
+import numpy as np
 import pandas as pd
 from elasticsearch import Elasticsearch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -43,9 +45,8 @@ def initialize_embedding_model(config: Dict) -> Embedder:
     """
     try:
         settings = EmbedderSettings(**config["embedding_model"])
-        logger.info(f"Loaded embedder settings for model {settings.model_name}")
         embedder = Embedder(settings)
-        logger.info(f"Initialized embedding model {settings.model_type}, {settings.model_name}")
+        logger.info(f"Initialized embedding model {settings.model_name}")
         return embedder
     except Exception as e:
         logger.error(f"Failed to initialize embedding model: {e}")
@@ -136,7 +137,6 @@ def load_and_process_text_documents(db, embedder: Embedder, es: Elasticsearch, c
     chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
     chunker: AbstractBaseChunker = chunker_cls(**config["data_processing"]["chunker"]["kwargs"])
 
-    logger.info("Successfully initialized chunker")
     text_transformers = [
         c["py_class"](**c.get("kwargs"))
         for c in config["data_processing"].get("text_transformers", [])
@@ -147,14 +147,21 @@ def load_and_process_text_documents(db, embedder: Embedder, es: Elasticsearch, c
     ]
 
     try:
+        embeddings_path = os.path.join(config["data_sources"]["embeddings"],
+                                       config["embedding_model"]["embeddings_dir"], "chunks.npy")
         file_path = config["data_sources"]["text_file"]
         separator = config["data_sources"]["text_separator"]
 
         with open(file_path, "r", encoding="utf-8") as npa:
-            content = npa.read().split(separator)
-
+            content = npa.read().split(separator)[:-1]  # Last element of the list is " "
         create_index(index_name="chunks", es_client=es)
-        logger.info("Started vectorizing the NPA data and store it in database")
+
+        emb_iter = iter(np.load(embeddings_path)) if os.path.exists(embeddings_path) else None
+
+        if emb_iter:
+            logger.info("Found embeddings stored. Skip vectorizing...")
+        else:
+            logger.info("Started vectorizing the NPA data and store it in database")
         for document in tqdm(content):
             text = document.strip()
 
@@ -173,19 +180,23 @@ def load_and_process_text_documents(db, embedder: Embedder, es: Elasticsearch, c
             for transformer in chunk_transformers:
                 chunks = transformer.transform(chunks)
 
-            store_chunks(db, es, doc, chunks, embedder, config)
+            store_chunks(db, es, doc, chunks, embedder, emb_iter)
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
         raise
 
 
-def store_chunks(db, es: Elasticsearch, doc: HmaoNpaDataset, chunks: List[str], embedder: Embedder, config) -> None:
+def store_chunks(db, es: Elasticsearch, doc: HmaoNpaDataset, chunks: List[str], embedder: Embedder, emb_iter) -> None:
     """
     Vectorizes and stores text chunks in the database.
     """
     try:
-        embeddings = embedder.encode(chunks, doc_type="document")
+
+        if emb_iter:
+            embeddings = [next(emb_iter) for _ in range(len(chunks))]
+        else:
+            embeddings = embedder.encode(chunks, doc_type="document")
 
         for passage, embedding in zip(chunks, embeddings, strict=True):
             db_chunk = DataChunks(parent_id=doc.id, dt=doc.dt,

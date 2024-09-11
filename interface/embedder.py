@@ -63,7 +63,7 @@ class Embedder(IEmbedder):
 
         return np.array([torch.Tensor.cpu(emb) for emb in F.normalize(embeddings, dim=-1)])
 
-    def preprocess_sentences(self, sentences: Union[str, List[str]], doc_type: str) -> List[str]:
+    def preprocess_sentences(self, sentences: List[str], doc_type: str) -> List[str]:
         if doc_type == 'query':
             return [self.prefix_query.format(sentence) for sentence in sentences]
         elif doc_type == 'document':

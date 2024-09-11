@@ -52,11 +52,12 @@ llm_respond:
 
 embedding_model:
   batch_size: 16
-  model_name: "sentence-transformers/paraphrase-MiniLM-L6-v2"
+  model_name: "deepvk/USER-base"
   model_type: ""
-  dimension: 384
-  prefix_query: "{}"
-  prefix_document: "{}"
+  embeddings_dir: "USER-base"
+  dimension: 768
+  prefix_query: "query: {}"
+  prefix_document: "passage: {}"
 
 elastic_params:
   host: "elasticsearch"
@@ -73,6 +74,7 @@ retrieval:
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"
+  embeddings: "./data/embeddings"
   text_file: "./data/hmao_npa.txt"
   text_separator: "\n\n"
 
