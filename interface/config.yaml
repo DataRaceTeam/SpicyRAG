@@ -65,7 +65,7 @@ elastic_params:
   index_name: "chunks"
 
 retrieval:
-  vector_search_enabled: true
+  vector_search_enabled: false
   similarity_threshold: 0.7
   top_k_vector: 3
   fulltext_search_enabled: true
