@@ -2,14 +2,21 @@ import logging
 from pydoc import locate
 
 import pandas as pd
+import numpy as np
+import torch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from interface.chunker import AbstractBaseChunker
+from interface.chunker import AbstractBaseChunker, ColBERTChunker
 from interface.database import SessionLocal
 from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
+
+from colbert import Indexer, Searcher
+from colbert.infra import Run, RunConfig, ColBERTConfig
+from colbert.modeling.tokenization import QueryTokenizer, DocTokenizer
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +38,15 @@ def initialize_llm_client(config):
 
 def initialize_embedding_model(config):
     """
-    Initializes and returns the embedding model using provided configuration.
+    Initializes and returns the ColBERT embedding model using provided configuration.
     """
     try:
-        model = SentenceTransformer(config["embedding_model"]["name"])
-        logger.info(f"Initialized embedding model {config['embedding_model']['name']}")
+        colbert_config = ColBERTConfig.from_existing_model(config["embedding_model"]["name"])
+        model = Indexer(checkpoint=config["embedding_model"]["name"], config=colbert_config)
+        logger.info(f"Initialized ColBERT embedding model {config['embedding_model']['name']}")
         return model
     except Exception as e:
-        logger.error(f"Failed to initialize embedding model: {e}")
+        logger.error(f"Failed to initialize ColBERT embedding model: {e}")
         raise
 
 
@@ -122,39 +130,33 @@ def load_and_process_text_documents(db, model, config):
     """
     Loads and processes text documents from a file, chunking and vectorizing the content.
     """
-
-    chunker_cls = locate(config["data_processing"]["chunker"]["py_class"])
-    chunker: AbstractBaseChunker = chunker_cls(**config["data_processing"]["chunker"]["kwargs"])
-
-    text_transformers = [
-        c["py_class"](**c.get("kwargs"))
-        for c in config["data_processing"].get("text_transformers", [])
-    ]
-    chunk_transformers = [
-        c["py_class"](**c.get("kwargs"))
-        for c in config["data_processing"].get("chunk_transformers", [])
-    ]
+chunker = ColBERTChunker(
+        max_length=config["data_processing"]["max_chunk_length"],
+        overlap=config["data_processing"]["chunk_overlap"]
+    )
 
     try:
         file_path = config["data_sources"]["text_file"]
-        separator = config["data_sources"]["text_separator"]
         with open(file_path, "r", encoding="utf-8") as file:
-            content = file.read().split(separator)
+            content = file.read()
 
-        for document in content:
-            hmao_entry = HmaoNpaDataset(document_text=document.strip())
+        chunks = chunker.chunk(content)
+
+        for chunk in chunks:
+            hmao_entry = HmaoNpaDataset(document_text=chunk["text"])
             db.add(hmao_entry)
-            db.commit()
+            db.flush()  # To get the id
 
-            text = hmao_entry.document_text
-            for transformer in text_transformers:
-                text = transformer.transform(text)
+            vector = vectorize(chunk["text"], model)
+            db_chunk = DataChunks(
+                parent_id=hmao_entry.id,
+                chunk_text=chunk["text"],
+                chunk_header=chunk["header"],
+                vector=vector
+            )
+            db.add(db_chunk)
 
-            chunks = chunker.chunk(text)
-            for transformer in chunk_transformers:
-                chunks = transformer.transform(chunks)
-
-            store_chunks(db, hmao_entry.id, chunks, model, config)
+        db.commit()
         logger.info(f"Processed and stored chunks from {file_path}")
     except Exception as e:
         logger.error(f"Error processing text documents: {e}")
@@ -162,7 +164,7 @@ def load_and_process_text_documents(db, model, config):
 
 
 def store_chunks(db, parent_id, chunks, model, config):
-    """
+     """
     Vectorizes and stores text chunks in the database.
     """
     try:
@@ -178,11 +180,14 @@ def store_chunks(db, parent_id, chunks, model, config):
 
 def vectorize(chunk, model):
     """
-    Vectorizes a given text chunk using the provided model.
+    Vectorizes a given text chunk using the ColBERT model.
     """
     try:
-        vector = model.encode(chunk)
-        return vector.tolist()
+        doc_tokenizer = DocTokenizer(model.config)
+        tokens, _ = doc_tokenizer.tensorize([chunk])
+        with torch.no_grad():
+            embeddings = model.doc(tokens)
+        return embeddings.cpu().numpy()
     except Exception as e:
         logger.error(f"Failed to vectorize chunk: {e}")
         raise
@@ -190,12 +195,17 @@ def vectorize(chunk, model):
 
 def retrieve_contexts(query, model, config):
     """
-    Retrieves the most relevant contexts from DataChunks for a given query using vector search.
+    Retrieves the most relevant contexts from DataChunks for a given query using ColBERT.
     """
     db = SessionLocal()
     try:
-        # Encode the query to get its vector
-        query_vector = model.encode(query).tolist()
+        query_tokenizer = QueryTokenizer(model.config)
+        query_tokens, _ = query_tokenizer.tensorize([query])
+        with torch.no_grad():
+            query_embedding = model.query(query_tokens)
+        
+        # Average the query token embeddings
+        query_vector = query_embedding.mean(dim=0).cpu().numpy()
 
         # Define parameters
         k = config["data_processing"]["top_k"]

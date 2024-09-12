@@ -1,4 +1,5 @@
 import yaml
+from sqlalchemy import Column, Integer, Text, ForeignKey
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     JSON,
@@ -40,10 +41,11 @@ class HmaoNpaDataset(Base):
 class DataChunks(Base):
     __tablename__ = "data_chunks"
 
-    id = Column(Integer, primary_key=True, index=True)
+     id = Column(Integer, primary_key=True, index=True)
     parent_id = Column(Integer, ForeignKey("hmao_npa_dataset.id"), nullable=False)
     chunk_text = Column(Text, nullable=False)
-    vector = Column(Vector(config["embedding_model"]["dimension"]))
+     chunk_header = Column(Text)
+    vector = Column(Vector(128))
 
     def __init__(self, parent_id, chunk_text, vector):
         self.parent_id = parent_id
