@@ -4,6 +4,8 @@ from pydoc import locate
 from datetime import datetime
 from typing import Union, Dict, List
 
+import re
+
 from tqdm import tqdm
 
 import numpy as np
@@ -32,8 +34,12 @@ def initialize_llm_client(config: Dict) -> OpenAI:
         llm_client = OpenAI(
             base_url=config["llm"]["base_url"], api_key=config["llm"]["api_key"]
         )
+
+        llm_respomd_client = OpenAI(
+            base_url=config["llm_respond"]["base_url"], api_key=config["llm_respond"]["api_key"]
+        )
         logger.info("LLM client initialized successfully.")
-        return llm_client
+        return llm_client, llm_respomd_client
     except Exception as e:
         logger.error(f"Failed to initialize LLM client: {e}")
         raise
@@ -279,6 +285,8 @@ def generate_response(llm_client, contexts, query, config):
             if chunk.choices[0].delta.content is not None:
                 generated_response += chunk.choices[0].delta.content
 
+        generated_response = re.sub(r'(<\|eot_id\|>).*', '', generated_response)
+
         logger.info(f"Generated response: {generated_response[:30]}...")
         return generated_response
     except Exception as e:
@@ -312,6 +320,7 @@ def answer_query(llm_client, query, config):
             temperature=config["llm_respond"]["temperature"],
             top_p=config["llm_respond"]["top_p"],
             max_tokens=config["llm_respond"]["max_tokens"],
+            stop=["<|eot|>", "<|eot_id|>", "<|eot_id|><|eot_id|>user<|eot_id|>"],
             stream=True,
         )
 
@@ -328,13 +337,13 @@ def answer_query(llm_client, query, config):
         raise
 
 
-def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query: str, es: Elasticsearch) -> Union[
+def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, llm_respond_client: OpenAI, query: str, es: Elasticsearch) -> Union[
     dict, str]:
     """
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
-        answered_query = answer_query(llm_client, query, config)
+        answered_query = answer_query(llm_respond_client, query, config)
         contexts = retrieve_contexts(
             answered_query, embedder, config, es
         )  # В ретривер отправляется переписанный запрос

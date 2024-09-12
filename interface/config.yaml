@@ -16,9 +16,9 @@ server:
   port: 8000
 
 llm:
-  base_url: "${LLM_BASE_URL}"
+  base_url: "${LLM_URL}"
   api_key: "${LLM_API_KEY}"
-  model: "meta/llama-3.1-405b-instruct"
+  model: "AnatoliiPotapov/T-lite-instruct-0.1"
   role: "user"
   system_prompt: |
     Вы являетесь виртуальным юридическим консультантом, специализирующимся на анализе и интерпретации юридических документов и правовых норм.
@@ -35,17 +35,17 @@ llm:
     Отвечай структурно и по пунктам. Отвечай на русском языке!
   temperature: 0.15
   top_p: 0.7
-  max_tokens: 4096
+  max_tokens: 2048
 
 llm_respond:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_REWRITER_BASE_URL}"
+  api_key: "${LLM_REWRITER_API_KEY}"
   model: "meta/llama-3.1-70b-instruct"
   role: "user"
   system_prompt: |
     Представь, что тебе задали следующий вопрос. Хотя точной информации по данному вопросу может не быть в доступных источниках, сгенерируй гипотетический ответ на основе твоих знаний. Затем используй этот ответ, чтобы найти релевантные данные или возможные факты, которые могут быть полезны для уточнения или подтверждения гипотезы.
     Сформулируй ответ, включая найденную информацию, если она есть, или гипотетические рассуждения, если точных данных нет.
-    Отвечай только на русском языке. Отвечай одним абзацем
+    Отвечай только на русском языке. Ответ должен быть только из одного абзаца
   temperature: 0.7
   top_p: 0.7
   max_tokens: 1024
@@ -57,7 +57,7 @@ embedding_model:
   embeddings_dir: "USER-base"
   dimension: 768
   prefix_query: "query: {}"
-  prefix_document: "passage: {}"
+  prefix_document: "query: {}"
 
 elastic_params:
   host: "elasticsearch"
@@ -68,7 +68,7 @@ retrieval:
   vector_search_enabled: true
   similarity_threshold: 0.7
   top_k_vector: 3
-  fulltext_search_enabled: true
+  fulltext_search_enabled: false
   top_k_fulltext: 3
   top_k : 5
 
