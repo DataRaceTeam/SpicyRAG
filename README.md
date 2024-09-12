@@ -30,12 +30,9 @@
     |
     ├── streamlit          <- streamlit front
     |
-    ├── tests
-    │   ├── confest.py     <- pytest framework
-    │   ├── test_ragas_evaluation.py   <- оценка с помощью RAGAS
-    │   │
+    ├── tests              <- оценка с помощью RAGAS
     │
-    └── 
+    └── requirements.txt   <- требования для запуска проекта
 
 ## Как запустить проект 
 --------
