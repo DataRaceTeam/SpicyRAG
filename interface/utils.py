@@ -1,10 +1,8 @@
-import os
 import logging
-from pydoc import locate
+import os
 from datetime import datetime
-from typing import Union, Dict, List
-
-from tqdm import tqdm
+from pydoc import locate
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -12,14 +10,15 @@ from elasticsearch import Elasticsearch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from openai import OpenAI
+from tqdm import tqdm
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
+from interface.elastic import create_index, search, update_search
 from interface.embedder import Embedder
 from interface.models import DataChunks, HmaoNpaDataset, RagasNpaDataset
 from interface.schemas import EmbedderSettings
 from interface.text_features import extract_date, extract_npa_number
-from interface.elastic import update_search, create_index, search
 
 logger = logging.getLogger(__name__)
 

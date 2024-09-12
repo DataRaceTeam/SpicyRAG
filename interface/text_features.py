@@ -1,7 +1,6 @@
 import re
 from typing import List, Optional
 
-
 gost_pattern = r'ГОСТ.*?\b\d{4}\b'
 number_pattern = r'№\s*(\d+(?:-[a-zA-Zа-яА-Я]+)?)\.'
 date_pattern = r"\d{2}\.\d{2}\.\d{4}"

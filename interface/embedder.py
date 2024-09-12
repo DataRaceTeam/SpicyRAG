@@ -1,12 +1,12 @@
 import abc
-from typing import Union, List
+from typing import List
 
-from tqdm import tqdm
 import more_itertools
 import numpy as np
 import torch
 import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModel, XLMRobertaTokenizer, XLMRobertaModel
+from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer, XLMRobertaModel, XLMRobertaTokenizer
 
 from interface.schemas import EmbedderSettings
 
