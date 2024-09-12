@@ -1,8 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
-from elasticsearch import Elasticsearch
 
 import yaml
+from elasticsearch import Elasticsearch
 from fastapi import FastAPI
 
 from interface import models, schemas, utils

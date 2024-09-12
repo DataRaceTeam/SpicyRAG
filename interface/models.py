@@ -1,10 +1,10 @@
 import yaml
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    Date,
     JSON,
     Boolean,
     Column,
+    Date,
     ForeignKey,
     Integer,
     String,

@@ -1,7 +1,7 @@
 import logging
-import more_itertools
-from typing import Iterator, Any, List, Dict
+from typing import Any, Dict, Iterator, List
 
+import more_itertools
 from elasticsearch import Elasticsearch, ElasticsearchException
 from elasticsearch.helpers import bulk
 
