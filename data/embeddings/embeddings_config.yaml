@@ -1,0 +1,53 @@
+paraphrase-MiniLM-L6-v2:
+  batch_size: 16
+  model_name: "sentence-transformers/paraphrase-MiniLM-L6-v2"
+  model_type: ""
+  embeddings_dir: "paraphrase-MiniLM-L6-v2"
+  dimension: 384
+  prefix_query: "{}"
+  prefix_document: "{}"
+
+USER-base:
+  batch_size: 16
+  model_name: "deepvk/USER-base"
+  model_type: ""
+  embeddings_dir: "USER-base"
+  dimension: 768
+  prefix_query: "query: {}"
+  prefix_document: "passage: {}"
+
+e5-base-en-ru:
+  batch_size: 16
+  model_name: "d0rj/e5-base-en-ru"
+  model_type: "e5"
+  embeddings_dir: "e5-base-en-ru"
+  dimension: 768
+  prefix_query: "query: {}"
+  prefix_document: "passage: {}"
+
+e5-large-en-ru:
+  batch_size: 16
+  model_name: "d0rj/e5-large-en-ru"
+  model_type: "e5"
+  embeddings_dir: "e5-large-en-ru"
+  dimension: 1024
+  prefix_query: "query: {}"
+  prefix_document: "passage: {}"
+
+USER-bge-m3:
+  batch_size: 16
+  model_name: "deepvk/USER-bge-m3"
+  model_type: ""
+  embeddings_dir: "USER-bge-m3"
+  dimension: 1024
+  prefix_query: "{}"
+  prefix_document: "{}"
+
+multilingual-e5-large-instruct:
+  batch_size: 16
+  model_name: "intfloat/multilingual-e5-large-instruct"
+  model_type: ""
+  embeddings_dir: "multilingual-e5-large-instruct"
+  dimension: 1024
+  prefix_query: "'Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: {}"
+  prefix_document: "{}"
