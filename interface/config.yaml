@@ -16,8 +16,8 @@ server:
   port: 8000
 
 llm:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
+  base_url:
+  api_key:
   model: "meta/llama-3.1-405b-instruct"
   role: "user"
   system_prompt: |
@@ -38,8 +38,8 @@ llm:
   max_tokens: 4096
 
 llm_respond:
-  base_url: "${LLM_BASE_URL}"
-  api_key: "${LLM_API_KEY}"
+  base_url:
+  api_key:
   model: "meta/llama-3.1-70b-instruct"
   role: "user"
   system_prompt: |
@@ -67,10 +67,13 @@ elastic_params:
 retrieval:
   vector_search_enabled: true
   similarity_threshold: 0.7
-  top_k_vector: 3
+  top_k_vector: 8
   fulltext_search_enabled: true
-  top_k_fulltext: 3
+  top_k_fulltext: 8
   top_k : 5
+
+reranker:
+  name: "BAAI/bge-reranker-v2-m3"
 
 data_sources:
   excel_file: "./data/v2_ragas_npa_dataset_firstPart.xlsx"

@@ -12,6 +12,7 @@ from elasticsearch import Elasticsearch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from openai import OpenAI
+from FlagEmbedding import FlagReranker
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
@@ -51,6 +52,19 @@ def initialize_embedding_model(config: Dict) -> Embedder:
     except Exception as e:
         logger.error(f"Failed to initialize embedding model: {e}")
         raise
+
+def initialize_reranker(config):
+    """
+    Initializes and returns the embedding model using provided configuration.
+    """
+    try:
+        model =  FlagReranker(config['reranker']['name'], use_fp16=True) 
+        logger.info(f"Initialized reranker model {config['reranker']['name']}")
+        return model
+    except Exception as e:
+        logger.error(f"Failed to initialize embedding model: {e}")
+        raise
+
 
 
 def chunker(text: str, max_length: int, chunk_overlap: int = 256):
@@ -246,7 +260,8 @@ def retrieve_contexts(query: str, embedder: Embedder, config: Dict, es: Elastics
         if config["retrieval"]["fulltext_search_enabled"]:
             top_chunks.extend(search(es, config, query))
 
-        result = list(set(top_chunks[:config["retrieval"]["top_k"]]))
+        # result = list(set(top_chunks[:config["retrieval"]["top_k"]]))
+        result = list(set(top_chunks))
         logger.info(f"Retrieved top {len(result)} contexts for the query")
         return result
     except Exception as e:
@@ -328,17 +343,27 @@ def answer_query(llm_client, query, config):
         raise
 
 
-def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, query: str, es: Elasticsearch) -> Union[
+def rerank(config, reranker, chunks, query):
+    scores = reranker.compute_score([[query, c] for c in chunks], normalize=True)
+    top_ids = sorted(range(config['retrieval']['top_k']), key=lambda x: scores[x], reverse=True)
+    
+    top_chunks = [chunks[i] for i in top_ids[:config["retrieval"]["top_k"]]]
+    return top_chunks
+
+
+def process_request(config: dict, embedder: Embedder, llm_client: OpenAI, reranker, query: str, es: Elasticsearch) -> Union[
     dict, str]:
     """
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
         answered_query = answer_query(llm_client, query, config)
-        contexts = retrieve_contexts(
+        first_contexts = retrieve_contexts(
             answered_query, embedder, config, es
         )  # В ретривер отправляется переписанный запрос
 
+        contexts = rerank(config, reranker, first_contexts, query)
+        
         # Generate the response
         llm_response = generate_response(llm_client, contexts, query, config)
 

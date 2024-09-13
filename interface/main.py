@@ -26,6 +26,7 @@ models.Base.metadata.create_all(bind=engine)
 local_embedder = utils.initialize_embedding_model(config)
 llm_client = utils.initialize_llm_client(config)
 
+reranker = utils.initialize_reranker(config)
 es_client = Elasticsearch(([{"host": config["elastic_params"]["host"], "port": config["elastic_params"]["port"]}]))
 
 @asynccontextmanager
@@ -47,7 +48,7 @@ app = FastAPI(title=config["project"]["name"], lifespan=lifespan)
 @app.post("/ask/")
 def ask_question(question: schemas.QuestionCreate):
     logger.info(f"Received question: {question.question}")
-    response_content = utils.process_request(config, local_embedder, llm_client, question.question, es_client)
+    response_content = utils.process_request(config, local_embedder, llm_client, reranker, question.question, es_client)
 
     logger.info(f"LLM Response: {response_content}")
     return response_content

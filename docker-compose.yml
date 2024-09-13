@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
       POSTGRES_DB: ${DB_NAME:-spicyragdb}
     ports:
-      - "5434:5432"
+      - "5444:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./data:/docker-entrypoint-initdb.d
@@ -43,11 +43,11 @@ services:
       done &&
       uvicorn interface.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
       - db
     volumes:
-      - ./interface:/app/interface
+      - ./interface:/app/interfaces
 
   streamlit:
     build: .
