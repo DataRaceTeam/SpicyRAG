@@ -28,6 +28,13 @@ llm_client = utils.initialize_llm_client(config)
 
 es_client = Elasticsearch(([{"host": config["elastic_params"]["host"], "port": config["elastic_params"]["port"]}]))
 
+unexpected_format_response = "An error occurred while processing the request due to unexpected response format."
+unexpected_format_context = ["No valid context available due to unexpected response format."]
+
+server_error_response = "An internal server error occurred. Please try again later."
+server_error_context = ["No context available due to server error."]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -53,26 +60,25 @@ def ask_question(question: schemas.QuestionCreate):
         logger.info(f"LLM Response: {response_content}")
 
         if isinstance(response_content, dict) and 'response' in response_content and 'context' in response_content:
-            response = schemas.QuestionResponse(
+            return schemas.QuestionResponse(
                 response=response_content['response'],
                 context=response_content['context']
             )
         else:
-            # If the response is not in the expected format, log an error and return a default response
             logger.error(f"Unexpected response format: {response_content}")
-            response = schemas.QuestionResponse(
-                response="An error occurred while processing the request.",
-                context="No context available due to error."
+            return schemas.QuestionResponse(
+                response=unexpected_format_response,
+                context=unexpected_format_context,
+                code=400
             )
 
     except Exception as e:
         logger.exception(f"An error occurred while processing the question: {str(e)}")
-        response = schemas.QuestionResponse(
-            response="An internal server error occurred. Please try again later.",
-            context="No context available due to server error."
+        return schemas.QuestionResponse(
+            response=server_error_response,
+            context=server_error_context,
+            code=500
         )
-
-    return response
 
 
 if __name__ == "__main__":
