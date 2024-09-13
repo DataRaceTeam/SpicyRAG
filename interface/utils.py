@@ -270,13 +270,12 @@ def generate_response(llm_client, contexts, query, config):
             temperature=config["llm"]["temperature"],
             top_p=config["llm"]["top_p"],
             max_tokens=config["llm"]["max_tokens"],
-            stream=True,
         )
 
         generated_response = ""
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                generated_response += chunk.choices[0].delta.content
+        for chunk in response.choices:
+            if chunk.message.content is not None:
+                generated_response += chunk.message.content
 
         logger.info(f"Generated response: {generated_response[:30]}...")
         return generated_response
@@ -311,13 +310,12 @@ def answer_query(llm_client, query, config):
             temperature=config["llm_respond"]["temperature"],
             top_p=config["llm_respond"]["top_p"],
             max_tokens=config["llm_respond"]["max_tokens"],
-            stream=True,
         )
 
         answered_query = ""
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                answered_query += chunk.choices[0].delta.content
+        for chunk in response.choices:
+            if chunk.message.content is not None:
+                answered_query += chunk.message.content
 
         answered_query += f'\n------------------\n{query}'
         logger.info(f"Answered query: {answered_query}")

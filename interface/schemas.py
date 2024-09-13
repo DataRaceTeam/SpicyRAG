@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -12,3 +14,8 @@ class EmbedderSettings(BaseModel):
     dimension: int
     prefix_query: str
     prefix_document: str
+
+
+class QuestionResponse(BaseModel):
+    response: str
+    context: List[str]

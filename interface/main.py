@@ -44,13 +44,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=config["project"]["name"], lifespan=lifespan)
 
 
-@app.post("/ask/")
+@app.post("/ask/", response_model=schemas.QuestionResponse)
 def ask_question(question: schemas.QuestionCreate):
     logger.info(f"Received question: {question.question}")
+
     response_content = utils.process_request(config, local_embedder, llm_client, question.question, es_client)
 
     logger.info(f"LLM Response: {response_content}")
-    return response_content
+
+    response = schemas.QuestionResponse(
+        response=response_content['response'],
+        context=response_content['context']
+    )
+
+    return response
 
 
 if __name__ == "__main__":
