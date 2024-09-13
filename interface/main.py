@@ -21,6 +21,8 @@ models.Base.metadata.create_all(bind=engine)
 local_embedding_model = utils.initialize_embedding_model(config)
 llm_client = utils.initialize_llm_client(config)
 
+reranker = utils.initialize_reranker(config)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,7 +43,7 @@ app = FastAPI(title=config["project"]["name"], lifespan=lifespan)
 @app.post("/ask/")
 def ask_question(question: schemas.QuestionCreate):
     logger.info(f"Received question: {question.question}")
-    response_content = utils.process_request(config, llm_client, question.question)
+    response_content = utils.process_request(config, llm_client, reranker, question.question)
 
     logger.info(f"LLM Response: {response_content}")
     return response_content

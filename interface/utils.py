@@ -6,6 +6,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
+from FlagEmbedding import FlagReranker
 
 from interface.chunker import AbstractBaseChunker
 from interface.database import SessionLocal
@@ -40,6 +41,20 @@ def initialize_embedding_model(config):
     except Exception as e:
         logger.error(f"Failed to initialize embedding model: {e}")
         raise
+
+
+def initialize_reranker(config):
+    """
+    Initializes and returns the embedding model using provided configuration.
+    """
+    try:
+        model =  FlagReranker(config['reranker']['name'], use_fp16=True) 
+        logger.info(f"Initialized reranker model {config['reranker']['name']}")
+        return model
+    except Exception as e:
+        logger.error(f"Failed to initialize embedding model: {e}")
+        raise
+
 
 
 def chunker(text, max_length, chunk_overlap=256):
@@ -298,17 +313,27 @@ def rewrite_query(llm_client, query, config):
         raise
 
 
-def process_request(config, llm_client, query):
+def rerank(config, reranker, chunks, query):
+    scores = reranker.compute_score([[query, c] for c in chunks], normalize=True)
+    top_ids = sorted(range(config['data_processing']['top_k']), key=lambda x: scores[x], reverse=True)
+    
+    top_chunks = [chunks[i] for i in top_ids[:config['data_processing']['top_rerank_k']]]
+    return top_chunks
+
+
+def process_request(config, llm_client, reranker, query):
     """
     Processes the incoming query by retrieving relevant contexts and generating a response.
     """
     try:
         model = initialize_embedding_model(config)
         rewrited_query = rewrite_query(llm_client, query, config)
-        contexts = retrieve_contexts(
+        first_contexts = retrieve_contexts(
             rewrited_query, model, config
         )  # В ретривер отправляется переписанный запрос
 
+        contexts = rerank(config, reranker, first_contexts, query)
+        
         # Generate the response
         llm_response = generate_response(llm_client, contexts, query, config)
 
