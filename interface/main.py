@@ -48,14 +48,29 @@ app = FastAPI(title=config["project"]["name"], lifespan=lifespan)
 def ask_question(question: schemas.QuestionCreate):
     logger.info(f"Received question: {question.question}")
 
-    response_content = utils.process_request(config, local_embedder, llm_client, question.question, es_client)
+    try:
+        response_content = utils.process_request(config, local_embedder, llm_client, question.question, es_client)
+        logger.info(f"LLM Response: {response_content}")
 
-    logger.info(f"LLM Response: {response_content}")
+        if isinstance(response_content, dict) and 'response' in response_content and 'context' in response_content:
+            response = schemas.QuestionResponse(
+                response=response_content['response'],
+                context=response_content['context']
+            )
+        else:
+            # If the response is not in the expected format, log an error and return a default response
+            logger.error(f"Unexpected response format: {response_content}")
+            response = schemas.QuestionResponse(
+                response="An error occurred while processing the request.",
+                context="No context available due to error."
+            )
 
-    response = schemas.QuestionResponse(
-        response=response_content['response'],
-        context=response_content['context']
-    )
+    except Exception as e:
+        logger.exception(f"An error occurred while processing the question: {str(e)}")
+        response = schemas.QuestionResponse(
+            response="An internal server error occurred. Please try again later.",
+            context="No context available due to server error."
+        )
 
     return response
 
