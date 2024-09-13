@@ -1,7 +1,7 @@
 # Data Race Team - AI Product Hack 2024 / case 9
 
 ## RAG pipeline:
---------
+
 1) Предоставленный набор документов хранится в полнотекстовом индексе и разбивается на чанки.
 2) С помощью трансформера создаются эмбединги чанков.
 3) Запрос пользователя получается по API и подается в LLM Llama 70b для формирования ответа. Полученный ответ векторизируется.
@@ -43,12 +43,14 @@
 ## Как запустить проект 
 
 1. Клонируйте репозиторий:
+
 Сначала клонируйте репозиторий на ваш компьютер с помощью команды:
 
     git clone <repository_url>
     cd <repository_directory>
 
 2. Создайте файл .env:
+
 В корневом каталоге проекта создайте файл .env и добавьте следующие переменные окружения:
 
     LLM_BASE_URL=<ваш_base_url>
@@ -60,12 +62,14 @@
 Замените LLM_BASE_URL и LLM_API_KEY на ваши актуальные значения.
 
 3. Настройте модель эмбеддера:
+
 Откройте файл interface/config.yaml и установите значения для параметров embedding_model и dimension в соответствии с конфигурацией, указанной в файле data/embeddings/embeddings_config.yaml.
 
-файл interface/config.yaml позволяет менять параметры эксперимента, не поглужаясь в кодовую базу. 
+Файл interface/config.yaml позволяет менять параметры эксперимента, не поглужаясь в кодовую базу. 
 
  
 4. Запустите проект:
+
 Чтобы запустить проект, выполните следующую команду:
 
     make run
@@ -74,10 +78,17 @@
 
 ## Материалы 
 Ниже представлена часть материалов, которые использоваи для подготовки проекта
+
 https://habr.com/ru/articles/779526/ (RAG — простое и понятное объяснение)
+
 https://www.rungalileo.io/blog/mastering-rag-how-to-architect-an-enterprise-rag-system (Mastering RAG: How To Architect An Enterprise RAG System)
+
 https://srk.ai/blog/004-ai-llm-retrieval-eval-llamaindex (RAG - Encoder and Reranker evaluation)
+
 https://habr.com/ru/companies/raft/articles/791034/ (Архитектура RAG: полный гайд)
+
 https://habr.com/ru/companies/raft/articles/818781/ (Архитектура RAG: часть вторая — Advanced RAG)
+
 https://youtu.be/sVcwVQRHIc8?si=4TcxFYeGwnjVnfhG (RAG from scratch)
+
 https://youtu.be/kEgeegk9iqo?si=boVl0jwyMI3qSsJ7 (Advanced RAG with colbert)
