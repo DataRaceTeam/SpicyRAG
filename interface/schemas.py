@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List, Dict, Any
 
 
 class QuestionCreate(BaseModel):
@@ -12,3 +13,8 @@ class EmbedderSettings(BaseModel):
     dimension: int
     prefix_query: str
     prefix_document: str
+
+
+class QuestionResponse(BaseModel):
+    response: str
+    context: List[str]
