@@ -28,6 +28,13 @@ llm_client = utils.initialize_llm_client(config)
 
 es_client = Elasticsearch(([{"host": config["elastic_params"]["host"], "port": config["elastic_params"]["port"]}]))
 
+unexpected_format_response = "An error occurred while processing the request due to unexpected response format."
+unexpected_format_context = ["No valid context available due to unexpected response format."]
+
+server_error_response = "An internal server error occurred. Please try again later."
+server_error_context = ["No context available due to server error."]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -48,16 +55,30 @@ app = FastAPI(title=config["project"]["name"], lifespan=lifespan)
 def ask_question(question: schemas.QuestionCreate):
     logger.info(f"Received question: {question.question}")
 
-    response_content = utils.process_request(config, local_embedder, llm_client, question.question, es_client)
+    try:
+        response_content = utils.process_request(config, local_embedder, llm_client, question.question, es_client)
+        logger.info(f"LLM Response: {response_content}")
 
-    logger.info(f"LLM Response: {response_content}")
+        if isinstance(response_content, dict) and 'response' in response_content and 'context' in response_content:
+            return schemas.QuestionResponse(
+                response=response_content['response'],
+                context=response_content['context']
+            )
+        else:
+            logger.error(f"Unexpected response format: {response_content}")
+            return schemas.QuestionResponse(
+                response=unexpected_format_response,
+                context=unexpected_format_context,
+                code=400
+            )
 
-    response = schemas.QuestionResponse(
-        response=response_content['response'],
-        context=response_content['context']
-    )
-
-    return response
+    except Exception as e:
+        logger.exception(f"An error occurred while processing the question: {str(e)}")
+        return schemas.QuestionResponse(
+            response=server_error_response,
+            context=server_error_context,
+            code=500
+        )
 
 
 if __name__ == "__main__":
